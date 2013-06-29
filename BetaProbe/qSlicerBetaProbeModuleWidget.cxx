@@ -15,6 +15,12 @@
 
 ==============================================================================*/
 
+#define BRAINLAB_IP "127.0.0.1"
+#define BRAINLAB_PORT 22222
+
+#define BETAPROBE_IP "127.0.0.1"
+#define BETAPROBE_PORT 12345
+
 #include <sstream>
 
 // Qt includes
@@ -26,6 +32,7 @@
 #include "qSlicerBetaProbeModuleWidget.h"
 #include "ui_qSlicerBetaProbeModuleWidget.h"
 
+#include "vtkMRMLBetaProbeNode.h"
 #include "vtkMRMLIGTLConnectorNode.h"
 
 //-----------------------------------------------------------------------------
@@ -35,10 +42,6 @@ class qSlicerBetaProbeModuleWidgetPrivate: public Ui_qSlicerBetaProbeModuleWidge
 public:
   qSlicerBetaProbeModuleWidgetPrivate();
   ~qSlicerBetaProbeModuleWidgetPrivate();
- 
-public:
-  vtkMRMLIGTLConnectorNode* trackingDeviceNode;
-  vtkMRMLIGTLConnectorNode* countingDeviceNode;
 };
 
 //-----------------------------------------------------------------------------
@@ -47,22 +50,11 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
 {
-  this->trackingDeviceNode = NULL;
-  this->countingDeviceNode = NULL;
 }
 
 //-----------------------------------------------------------------------------
 qSlicerBetaProbeModuleWidgetPrivate::~qSlicerBetaProbeModuleWidgetPrivate()
 {
-  if (this->trackingDeviceNode)
-    {
-    this->trackingDeviceNode->Delete();
-    }
-
-  if (this->countingDeviceNode)
-    {
-    this->countingDeviceNode->Delete();
-    }
 }
 
 //-----------------------------------------------------------------------------
@@ -92,10 +84,12 @@ void qSlicerBetaProbeModuleWidget::setup()
 }
 
 //-----------------------------------------------------------------------------
-void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* nodeAdded)
+void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* node)
 {
   Q_D(qSlicerBetaProbeModuleWidget);
 
+  vtkMRMLBetaProbeNode* nodeAdded =
+    vtkMRMLBetaProbeNode::SafeDownCast(node);
   if (nodeAdded)
     {
     // New node created. Create 2 new OpenIGTLink node:
@@ -109,7 +103,9 @@ void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* nodeAdded)
 	{
 	trackingNode->SetName("BetaProbeTrackingDevice");
 	this->mrmlScene()->AddNode(trackingNode);
-	d->trackingDeviceNode = trackingNode;
+	trackingNode->SetTypeClient(BRAINLAB_IP, BRAINLAB_PORT);
+	trackingNode->Start();
+	nodeAdded->SetTrackingDeviceNode(trackingNode);
 	}
 
       // Counting device node
@@ -119,9 +115,13 @@ void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* nodeAdded)
 	{
 	countingNode->SetName("BetaProbeCountingDevice");
 	this->mrmlScene()->AddNode(countingNode);
-	d->countingDeviceNode = countingNode;
+	countingNode->SetTypeClient(BETAPROBE_IP, BETAPROBE_PORT);
+	// Disable as BetaProbe not available 
+	//countingNode->Start();
+	nodeAdded->SetCountingDeviceNode(countingNode);
 	}
       }
+    d->LogRecorderWidget->setBetaProbeNode(nodeAdded);
     }
 }
 

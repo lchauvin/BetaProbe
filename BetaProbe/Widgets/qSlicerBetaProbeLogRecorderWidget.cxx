@@ -24,6 +24,7 @@
 #include "qSlicerBetaProbeLogRecorderWidget.h"
 #include "ui_qSlicerBetaProbeLogRecorderWidget.h"
 
+#include "vtkMRMLBetaProbeNode.h"
 #include "vtkMRMLScene.h"
 
 #include <QDateTime>
@@ -39,9 +40,11 @@ class qSlicerBetaProbeLogRecorderWidgetPrivate
 protected:
   qSlicerBetaProbeLogRecorderWidget* const q_ptr;
 
+  vtkMRMLBetaProbeNode* betaProbeMRMLNode;
   QString currentLogFile;
   std::ofstream recordingFile;
   bool logFileOpen;
+  bool recording;
 
 public:
   qSlicerBetaProbeLogRecorderWidgetPrivate(
@@ -58,6 +61,7 @@ qSlicerBetaProbeLogRecorderWidgetPrivate
   : q_ptr(&object)
 {
   this->logFileOpen = false;
+  this->recording = false;
 }
 
 // --------------------------------------------------------------------------
@@ -189,13 +193,21 @@ void qSlicerBetaProbeLogRecorderWidget
     return;
     }
 
-  bool recordState = (state == Qt::Checked ? true : false);
-  if (recordState)
+  d->recording = (state == Qt::Checked ? true : false);
+  if (d->recording)
     {
     d->recordingFile << std::endl
 		     << std::endl
-		     << "Data recorded at: " << QTime::currentTime().toString().toStdString()
+		     << "Start recording at: " << QTime::currentTime().toString().toStdString()
 		     << std::endl << "--------------------------------------------------"
+		     << std::endl;    
+    }
+  else
+    {
+    d->recordingFile << std::endl
+		     << std::endl << "--------------------------------------------------"
+		     << "End recording at: " << QTime::currentTime().toString().toStdString()
+		     << std::endl
 		     << std::endl;    
     }
 }
@@ -209,5 +221,54 @@ void qSlicerBetaProbeLogRecorderWidget
   if (d->logFileOpen)
     {
     d->recordingFile << string << std::endl;
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::setBetaProbeNode(vtkMRMLBetaProbeNode* newBetaProbeNode)
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  if (!newBetaProbeNode)
+    {
+    return;
+    }
+
+  // Observe events
+  qvtkReconnect(d->betaProbeMRMLNode, newBetaProbeNode, vtkCommand::ModifiedEvent,
+		this, SLOT(onDataNodeModified()));
+
+  d->betaProbeMRMLNode = newBetaProbeNode;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::onDataNodeModified()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+  
+  if (!d->betaProbeMRMLNode)
+    {
+    return;
+    }
+
+  if (!d->recording)
+    {
+    return;
+    }
+
+  // TODO: How to know which data received ?
+  vtkMRMLBetaProbeNode::trackingData* curPos =
+    d->betaProbeMRMLNode->GetCurrentPosition();
+  vtkMRMLBetaProbeNode::countingData* curVal =
+    d->betaProbeMRMLNode->GetCurrentCounts();
+
+  if (curPos && curVal)
+    {
+    std::stringstream dataReceived;
+    dataReceived << curPos->x << "\t" << curPos->y << "\t" << curPos->z << "\t"
+		 << curVal->beta << "\t" << curVal->gamma << "\t" << curVal->smoothed << std::endl;
+    this->recordData(dataReceived.str().c_str());
     }
 }

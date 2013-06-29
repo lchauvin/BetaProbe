@@ -23,7 +23,10 @@
 #ifndef __vtkMRMLBetaProbeNode_h
 #define __vtkMRMLBetaProbeNode_h
 
+
+#include "vtkSetGet.h"
 #include "vtkMRMLNode.h"
+#include "vtkMRMLIGTLConnectorNode.h"
 #include "vtkSlicerBetaProbeModuleMRMLExport.h"
 
 class vtkMRMLScene;
@@ -33,6 +36,20 @@ class  VTK_SLICER_BETAPROBE_MODULE_MRML_EXPORT vtkMRMLBetaProbeNode : public vtk
 public:
   static vtkMRMLBetaProbeNode *New();
   vtkTypeMacro(vtkMRMLBetaProbeNode, vtkMRMLNode);
+
+  typedef struct
+  {
+    double x;
+    double y;
+    double z;
+  }trackingData;
+
+  typedef struct
+  {
+    double beta;
+    double gamma;
+    double smoothed;
+  }countingData;
 
   //--------------------------------------------------------------------------
   // MRMLNode methods
@@ -65,11 +82,31 @@ public:
                                    unsigned long /*event*/, 
                                    void * /*callData*/ );
 
+  void SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode* trackingNode);
+  vtkGetObjectMacro(TrackingDeviceNode, vtkMRMLIGTLConnectorNode);
+
+  void SetCountingDeviceNode(vtkMRMLIGTLConnectorNode* countingNode);
+  vtkGetObjectMacro(CountingDeviceNode, vtkMRMLIGTLConnectorNode);
+
+  trackingData* GetCurrentPosition();
+  countingData* GetCurrentCounts();
+
 protected:
   vtkMRMLBetaProbeNode();
   ~vtkMRMLBetaProbeNode();
   vtkMRMLBetaProbeNode(const vtkMRMLBetaProbeNode&);
   void operator=(const vtkMRMLBetaProbeNode&); 
+
+
+  vtkMRMLIGTLConnectorNode* TrackingDeviceNode;
+  vtkMRMLIGTLConnectorNode* CountingDeviceNode;
+
+  std::vector<trackingData> trackerPosition;
+  trackingData currentPosition;
+  double numberOfTrackingDataReceived;
+  std::vector<countingData> countingValues;
+  countingData currentValues;
+  double numberOfCountingDataReceived;
 };
 
 #endif

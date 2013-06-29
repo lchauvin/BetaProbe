@@ -36,24 +36,30 @@
 // LogRecorder Widgets includes
 #include "qSlicerBetaProbeModuleWidgetsExport.h"
 
+#include <ctkVTKObject.h>
+
 class qSlicerBetaProbeLogRecorderWidgetPrivate;
+class vtkMRMLBetaProbeNode;
 
 /// \ingroup Slicer_QtModules_BetaProbe
 class Q_SLICER_MODULE_BETAPROBE_WIDGETS_EXPORT qSlicerBetaProbeLogRecorderWidget
   : public qSlicerWidget
 {
   Q_OBJECT
+  QVTK_OBJECT
 public:
   typedef qSlicerWidget Superclass;
   qSlicerBetaProbeLogRecorderWidget(QWidget *parent=0);
   virtual ~qSlicerBetaProbeLogRecorderWidget();
+  void openLogFile(QString filenamePath);
+  void closeLogFile();
+  void recordData(const char* string);
+  void setBetaProbeNode(vtkMRMLBetaProbeNode* newBetaProbeNode);
 
 protected slots:
   void onSelectFileClicked();
-  void openLogFile(QString filenamePath);
-  void closeLogFile();
   void onRecordChecked(int state);
-  void recordData(const char* string);
+  void onDataNodeModified();
 
 protected:
   QScopedPointer<qSlicerBetaProbeLogRecorderWidgetPrivate> d_ptr;

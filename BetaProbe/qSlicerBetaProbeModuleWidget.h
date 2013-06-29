@@ -39,7 +39,7 @@ public:
   virtual ~qSlicerBetaProbeModuleWidget();
 
 public slots:
-  void onNodeAdded(vtkMRMLNode* nodeAdded);
+  void onNodeAdded(vtkMRMLNode* node);
 
 
 protected:
