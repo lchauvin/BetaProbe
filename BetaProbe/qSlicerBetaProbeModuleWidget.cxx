@@ -81,6 +81,10 @@ void qSlicerBetaProbeModuleWidget::setup()
 
   connect(d->NodeSelector, SIGNAL(nodeAddedByUser(vtkMRMLNode*)),
 	  this, SLOT(onNodeAdded(vtkMRMLNode*)));
+
+  // Put label status to OFF
+  this->setBetaProbeStatus(false);
+  this->setTrackingStatus(false);
 }
 
 //-----------------------------------------------------------------------------
@@ -88,40 +92,132 @@ void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* node)
 {
   Q_D(qSlicerBetaProbeModuleWidget);
 
+  if (!this->mrmlScene())
+    {
+    return;
+    }
+
   vtkMRMLBetaProbeNode* nodeAdded =
     vtkMRMLBetaProbeNode::SafeDownCast(node);
   if (nodeAdded)
     {
     // New node created. Create 2 new OpenIGTLink node:
     // 1 for Tracking device, 1 for BetaProbe data
-    if (this->mrmlScene())
+    // Counting device node
+    vtkMRMLIGTLConnectorNode* countingNode = 
+      vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
+    if (countingNode)
       {
-      // Trackig device node
-      vtkMRMLIGTLConnectorNode* trackingNode = 
-	vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
-      if (trackingNode)
-	{
-	trackingNode->SetName("BetaProbeTrackingDevice");
-	this->mrmlScene()->AddNode(trackingNode);
-	trackingNode->SetTypeClient(BRAINLAB_IP, BRAINLAB_PORT);
-	trackingNode->Start();
-	nodeAdded->SetTrackingDeviceNode(trackingNode);
-	}
+      countingNode->SetName("BetaProbeCountingDevice");
+      this->mrmlScene()->AddNode(countingNode);
+      countingNode->SetTypeClient(BETAPROBE_IP, BETAPROBE_PORT);
+      // Disable as BetaProbe not available 
+      //countingNode->Start();
+      nodeAdded->SetCountingDeviceNode(countingNode);
 
-      // Counting device node
-      vtkMRMLIGTLConnectorNode* countingNode = 
-	vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
-      if (countingNode)
-	{
-	countingNode->SetName("BetaProbeCountingDevice");
-	this->mrmlScene()->AddNode(countingNode);
-	countingNode->SetTypeClient(BETAPROBE_IP, BETAPROBE_PORT);
-	// Disable as BetaProbe not available 
-	//countingNode->Start();
-	nodeAdded->SetCountingDeviceNode(countingNode);
-	}
+      // Connect events
+      qvtkConnect(countingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
+		  this, SLOT(onCountingNodeConnected()));
+      qvtkConnect(countingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
+		  this, SLOT(onCountingNodeDisconnected()));
       }
+    
+    // Tracking device node
+    vtkMRMLIGTLConnectorNode* trackingNode = 
+      vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
+    if (trackingNode)
+      {
+      trackingNode->SetName("BetaProbeTrackingDevice");
+      this->mrmlScene()->AddNode(trackingNode);
+      trackingNode->SetTypeClient(BRAINLAB_IP, BRAINLAB_PORT);
+      trackingNode->Start();
+      nodeAdded->SetTrackingDeviceNode(trackingNode);
+
+      // Connect events
+      qvtkConnect(trackingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
+		  this, SLOT(onTrackingNodeConnected()));
+      qvtkConnect(trackingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
+		  this, SLOT(onTrackingNodeDisconnected()));
+      }
+    
     d->LogRecorderWidget->setBetaProbeNode(nodeAdded);
     }
 }
 
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::setBetaProbeStatus(bool status)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->BetaProbeStatusLabel)
+    {
+    return;
+    }
+  
+  QString labelText = QString(status ? 
+				   "ON" :
+				   "OFF"); 
+  QPalette bgColor = d->BetaProbeStatusLabel->palette();
+  bgColor.setColor(d->BetaProbeStatusLabel->foregroundRole(),
+		    status ? 
+		    QColor::fromRgb(0,155,0,255) :
+		    QColor::fromRgb(155,0,0,255));
+
+  d->BetaProbeStatusLabel->setPalette(bgColor);
+  d->BetaProbeStatusLabel->setText(labelText);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::setTrackingStatus(bool status)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->TrackingStatusLabel)
+    {
+    return;
+    }
+  
+  QString labelText = QString(status ? 
+			      "ON" :
+			      "OFF"); 
+  QPalette bgColor = d->TrackingStatusLabel->palette();
+  bgColor.setColor(d->TrackingStatusLabel->foregroundRole(),
+		    status ? 
+		    QColor::fromRgb(0,155,0,255) :
+		    QColor::fromRgb(155,0,0,255));
+
+  d->TrackingStatusLabel->setPalette(bgColor);
+  d->TrackingStatusLabel->setText(labelText);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onTrackingNodeConnected()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  this->setTrackingStatus(true);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onTrackingNodeDisconnected()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  this->setTrackingStatus(false);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onCountingNodeConnected()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  this->setBetaProbeStatus(true);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onCountingNodeDisconnected()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  this->setBetaProbeStatus(false);
+}

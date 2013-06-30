@@ -100,82 +100,94 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
 {
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
-  // Tracking data received
-  if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->TrackingDeviceNode &&
-      event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
+  // Tracking node
+  if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->TrackingDeviceNode)
     {
-    vtkMRMLIGTLConnectorNode* connector =
-      vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
-    vtkMRMLLinearTransformNode* transformReceived =
-      vtkMRMLLinearTransformNode::SafeDownCast(this->TrackingDeviceNode->GetIncomingMRMLNode(this->TrackingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
-    if (transformReceived)
+    // Data received
+    if (event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
       {
-      vtkSmartPointer<vtkMatrix4x4> matrixReceived =
-	vtkSmartPointer<vtkMatrix4x4>::New();
-      transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
-      
-      this->currentPosition.x = matrixReceived->GetElement(0,3);
-      this->currentPosition.y = matrixReceived->GetElement(1,3);
-      this->currentPosition.z = matrixReceived->GetElement(2,3);
-
-      if (this->numberOfTrackingDataReceived < MAX_DATA_SAVED)
+      vtkMRMLIGTLConnectorNode* connector =
+	vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
+      vtkMRMLLinearTransformNode* transformReceived =
+	vtkMRMLLinearTransformNode::SafeDownCast(this->TrackingDeviceNode->GetIncomingMRMLNode(this->TrackingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
+      if (transformReceived)
 	{
-	this->trackerPosition.push_back(this->currentPosition);
+	vtkSmartPointer<vtkMatrix4x4> matrixReceived =
+	  vtkSmartPointer<vtkMatrix4x4>::New();
+	transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
+	
+	this->currentPosition.x = matrixReceived->GetElement(0,3);
+	this->currentPosition.y = matrixReceived->GetElement(1,3);
+	this->currentPosition.z = matrixReceived->GetElement(2,3);
+	
+	if (this->numberOfTrackingDataReceived < MAX_DATA_SAVED)
+	  {
+	  this->trackerPosition.push_back(this->currentPosition);
+	  }
+	else
+	  {
+	  this->trackerPosition[std::fmod(this->numberOfTrackingDataReceived, MAX_DATA_SAVED)] = this->currentPosition;
+	  }
+	this->numberOfTrackingDataReceived++;
+	this->Modified();
 	}
-      else
-	{
-	this->trackerPosition[std::fmod(this->numberOfTrackingDataReceived, MAX_DATA_SAVED)] = this->currentPosition;
-	}
-      this->numberOfTrackingDataReceived++;
-      this->Modified();
-      }					       
-    }
-
-  // Counting data received
-  else if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->CountingDeviceNode &&
-	   event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
-    {
-    vtkMRMLIGTLConnectorNode* connector =
-      vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
-    vtkMRMLLinearTransformNode* transformReceived =
-      vtkMRMLLinearTransformNode::SafeDownCast(this->CountingDeviceNode->GetIncomingMRMLNode(this->CountingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
-    if (transformReceived)
+      }
+    else if (event == vtkMRMLIGTLConnectorNode::ConnectedEvent)
       {
-      vtkSmartPointer<vtkMatrix4x4> matrixReceived =
-	vtkSmartPointer<vtkMatrix4x4>::New();
-      transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
-
-      // TODO: BetaProbe message ?
-      this->currentValues.beta	   = matrixReceived->GetElement(0,3);
-      this->currentValues.gamma	   = matrixReceived->GetElement(1,3);
-      this->currentValues.smoothed = matrixReceived->GetElement(2,3);
-
-      if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
-	{
-	this->countingValues.push_back(this->currentValues);
-	}
-      else
-	{
-	this->countingValues[std::fmod(this->numberOfCountingDataReceived, MAX_DATA_SAVED)] = this->currentValues;
-	}
-      this->numberOfCountingDataReceived++;
-      this->Modified();
-      }					       
+      this->InvokeEvent(vtkMRMLIGTLConnectorNode::ConnectedEvent);
+      }
     }
-}
 
-//---------------------------------------------------------------------------
-void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *trackingNode)
-{
-  if (!trackingNode || (trackingNode == this->TrackingDeviceNode))
+  // Counting node
+  else if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->CountingDeviceNode)
     {
-    return;
+    // Data received
+    if (event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
+      {
+      vtkMRMLIGTLConnectorNode* connector =
+	vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
+      vtkMRMLLinearTransformNode* transformReceived =
+	vtkMRMLLinearTransformNode::SafeDownCast(this->CountingDeviceNode->GetIncomingMRMLNode(this->CountingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
+      if (transformReceived)
+	{
+	vtkSmartPointer<vtkMatrix4x4> matrixReceived =
+	  vtkSmartPointer<vtkMatrix4x4>::New();
+	transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
+	
+	// TODO: BetaProbe message ?
+	this->currentValues.beta	   = matrixReceived->GetElement(0,3);
+	this->currentValues.gamma	   = matrixReceived->GetElement(1,3);
+	this->currentValues.smoothed = matrixReceived->GetElement(2,3);
+	
+	if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
+	  {
+	  this->countingValues.push_back(this->currentValues);
+	  }
+	else
+	  {
+	  this->countingValues[std::fmod(this->numberOfCountingDataReceived, MAX_DATA_SAVED)] = this->currentValues;
+	  }
+	this->numberOfCountingDataReceived++;
+	this->Modified();
+	}					       
+      }
     }
+ }
 
-  this->TrackingDeviceNode = trackingNode;
-  vtkNew<vtkIntArray> connectorNodeEvents;
-  connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ReceiveEvent);
-  vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
+ //---------------------------------------------------------------------------
+ void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *trackingNode)
+ {
+   if (!trackingNode || (trackingNode == this->TrackingDeviceNode))
+     {
+     return;
+     }
+
+   this->TrackingDeviceNode = trackingNode;
+   vtkNew<vtkIntArray> connectorNodeEvents;
+   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ReceiveEvent);
+   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ConnectedEvent);
+   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::DisconnectedEvent);
+   vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
 				  connectorNodeEvents.GetPointer());
   
 }

@@ -23,6 +23,8 @@
 
 #include "qSlicerBetaProbeModuleExport.h"
 
+#include "ctkVTKObject.h"
+
 class qSlicerBetaProbeModuleWidgetPrivate;
 class vtkMRMLNode;
 
@@ -31,6 +33,7 @@ class Q_SLICER_QTMODULES_BETAPROBE_EXPORT qSlicerBetaProbeModuleWidget :
   public qSlicerAbstractModuleWidget
 {
   Q_OBJECT
+  QVTK_OBJECT
 
 public:
 
@@ -40,12 +43,17 @@ public:
 
 public slots:
   void onNodeAdded(vtkMRMLNode* node);
-
+  void onTrackingNodeConnected();
+  void onTrackingNodeDisconnected();
+  void onCountingNodeConnected();
+  void onCountingNodeDisconnected();
 
 protected:
   QScopedPointer<qSlicerBetaProbeModuleWidgetPrivate> d_ptr;
   
   virtual void setup();
+  void setBetaProbeStatus(bool status);
+  void setTrackingStatus(bool status);
 
 private:
   Q_DECLARE_PRIVATE(qSlicerBetaProbeModuleWidget);
