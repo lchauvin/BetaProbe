@@ -42,13 +42,14 @@ vtkMRMLBetaProbeNode::vtkMRMLBetaProbeNode()
 {
   this->HideFromEditors = false;
   this->TrackingDeviceNode = NULL;
-  this->CountingDeviceNode = NULL;
   this->numberOfTrackingDataReceived = 0;
   
   this->currentPosition.x = 0.0;
   this->currentPosition.y = 0.0;
   this->currentPosition.z = 0.0;
 
+  this->currentValues.date.assign("");
+  this->currentValues.time.assign("");
   this->currentValues.beta     = 0.0;
   this->currentValues.gamma    = 0.0;
   this->currentValues.smoothed = 0.0;
@@ -60,11 +61,6 @@ vtkMRMLBetaProbeNode::~vtkMRMLBetaProbeNode()
   if (this->TrackingDeviceNode)
     {
     this->TrackingDeviceNode->Delete();
-    }
-
-  if (this->CountingDeviceNode)
-    {
-    this->CountingDeviceNode->Delete();
     }
 }
 
@@ -137,41 +133,6 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
       this->InvokeEvent(vtkMRMLIGTLConnectorNode::ConnectedEvent);
       }
     }
-
-  // Counting node
-  else if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->CountingDeviceNode)
-    {
-    // Data received
-    if (event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
-      {
-      vtkMRMLIGTLConnectorNode* connector =
-	vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
-      vtkMRMLLinearTransformNode* transformReceived =
-	vtkMRMLLinearTransformNode::SafeDownCast(this->CountingDeviceNode->GetIncomingMRMLNode(this->CountingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
-      if (transformReceived)
-	{
-	vtkSmartPointer<vtkMatrix4x4> matrixReceived =
-	  vtkSmartPointer<vtkMatrix4x4>::New();
-	transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
-	
-	// TODO: BetaProbe message ?
-	this->currentValues.beta	   = matrixReceived->GetElement(0,3);
-	this->currentValues.gamma	   = matrixReceived->GetElement(1,3);
-	this->currentValues.smoothed = matrixReceived->GetElement(2,3);
-	
-	if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
-	  {
-	  this->countingValues.push_back(this->currentValues);
-	  }
-	else
-	  {
-	  this->countingValues[std::fmod(this->numberOfCountingDataReceived, MAX_DATA_SAVED)] = this->currentValues;
-	  }
-	this->numberOfCountingDataReceived++;
-	this->Modified();
-	}					       
-      }
-    }
  }
 
  //---------------------------------------------------------------------------
@@ -193,17 +154,6 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
 }
 
 //---------------------------------------------------------------------------
-void vtkMRMLBetaProbeNode::SetCountingDeviceNode(vtkMRMLIGTLConnectorNode* countingNode)
-{
-  if (!countingNode || (countingNode == this->CountingDeviceNode))
-    {
-    return;
-    }
-
-  this->CountingDeviceNode = countingNode;
-}
-
-//---------------------------------------------------------------------------
 vtkMRMLBetaProbeNode::trackingData* vtkMRMLBetaProbeNode::GetCurrentPosition()
 {
   return &this->currentPosition;
@@ -213,4 +163,34 @@ vtkMRMLBetaProbeNode::trackingData* vtkMRMLBetaProbeNode::GetCurrentPosition()
 vtkMRMLBetaProbeNode::countingData* vtkMRMLBetaProbeNode::GetCurrentCounts()
 {
   return &this->currentValues;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
+					  std::string time,
+					  double smoothed,
+					  double beta,
+					  double gamma)
+{
+ 
+  if (date.empty() || time.empty())
+    {
+    return;
+    }
+
+  this->currentValues.date.assign(date);
+  this->currentValues.time.assign(time);
+  this->currentValues.smoothed = smoothed;
+  this->currentValues.beta     = beta;
+  this->currentValues.gamma    = gamma;
+  
+  if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
+    {
+    this->countingValues.push_back(this->currentValues);
+    }
+  else
+    {
+    this->countingValues[std::fmod(this->numberOfCountingDataReceived, MAX_DATA_SAVED)] = this->currentValues;
+    }
+  this->numberOfCountingDataReceived++;
 }

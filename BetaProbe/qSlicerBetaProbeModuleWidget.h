@@ -41,12 +41,20 @@ public:
   qSlicerBetaProbeModuleWidget(QWidget *parent=0);
   virtual ~qSlicerBetaProbeModuleWidget();
 
+  typedef struct
+  {
+    std::string IPAddress;
+    int Port;
+  }HostInformation;
+
 public slots:
   void onNodeAdded(vtkMRMLNode* node);
   void onTrackingNodeConnected();
   void onTrackingNodeDisconnected();
   void onCountingNodeConnected();
   void onCountingNodeDisconnected();
+  void onCountsReceived();
+  void StartConnections();
 
 protected:
   QScopedPointer<qSlicerBetaProbeModuleWidgetPrivate> d_ptr;

@@ -15,18 +15,15 @@
 
 ==============================================================================*/
 
-#define BRAINLAB_IP "127.0.0.1"
-#define BRAINLAB_PORT 22222
-
-#define BETAPROBE_IP "127.0.0.1"
-#define BETAPROBE_PORT 12345
-
+// STL
 #include <sstream>
 
 // Qt includes
 #include <QDateTime>
 #include <QDebug>
 #include <QFileDialog>
+#include <QTimer>
+#include <QUdpSocket>
 
 // SlicerQt includes
 #include "qSlicerBetaProbeModuleWidget.h"
@@ -42,6 +39,13 @@ class qSlicerBetaProbeModuleWidgetPrivate: public Ui_qSlicerBetaProbeModuleWidge
 public:
   qSlicerBetaProbeModuleWidgetPrivate();
   ~qSlicerBetaProbeModuleWidgetPrivate();
+
+  vtkMRMLBetaProbeNode* betaProbeNode;
+  vtkMRMLIGTLConnectorNode* trackingNode;
+  QUdpSocket* countingNode;
+  QTimer* udpTimeout;
+  qSlicerBetaProbeModuleWidget::HostInformation BrainLab;
+  qSlicerBetaProbeModuleWidget::HostInformation BetaProbe;
 };
 
 //-----------------------------------------------------------------------------
@@ -50,11 +54,25 @@ public:
 //-----------------------------------------------------------------------------
 qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
 {
+  this->betaProbeNode = NULL;
+  this->trackingNode = NULL;
+  this->countingNode = NULL;
+  this->udpTimeout = new QTimer();
+
+  this->BrainLab.IPAddress.assign("127.0.0.1");
+  this->BrainLab.Port = 22222;
+
+  this->BetaProbe.IPAddress.assign("192.168.0.207");
+  this->BetaProbe.Port = 3000;
 }
 
 //-----------------------------------------------------------------------------
 qSlicerBetaProbeModuleWidgetPrivate::~qSlicerBetaProbeModuleWidgetPrivate()
 {
+  if (this->udpTimeout)
+    {
+    this->udpTimeout->deleteLater();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -82,6 +100,13 @@ void qSlicerBetaProbeModuleWidget::setup()
   connect(d->NodeSelector, SIGNAL(nodeAddedByUser(vtkMRMLNode*)),
 	  this, SLOT(onNodeAdded(vtkMRMLNode*)));
 
+  connect(d->ReconnectButton, SIGNAL(clicked()),
+	  this, SLOT(StartConnections()));
+  
+  connect(d->udpTimeout, SIGNAL(timeout()),
+	  this, SLOT(onCountingNodeDisconnected()));
+
+  
   // Put label status to OFF
   this->setBetaProbeStatus(false);
   this->setTrackingStatus(false);
@@ -101,47 +126,63 @@ void qSlicerBetaProbeModuleWidget::onNodeAdded(vtkMRMLNode* node)
     vtkMRMLBetaProbeNode::SafeDownCast(node);
   if (nodeAdded)
     {
-    // New node created. Create 2 new OpenIGTLink node:
-    // 1 for Tracking device, 1 for BetaProbe data
-    // Counting device node
-    vtkMRMLIGTLConnectorNode* countingNode = 
-      vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
-    if (countingNode)
-      {
-      countingNode->SetName("BetaProbeCountingDevice");
-      this->mrmlScene()->AddNode(countingNode);
-      countingNode->SetTypeClient(BETAPROBE_IP, BETAPROBE_PORT);
-      // Disable as BetaProbe not available 
-      //countingNode->Start();
-      nodeAdded->SetCountingDeviceNode(countingNode);
-
-      // Connect events
-      qvtkConnect(countingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
-		  this, SLOT(onCountingNodeConnected()));
-      qvtkConnect(countingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
-		  this, SLOT(onCountingNodeDisconnected()));
-      }
-    
-    // Tracking device node
-    vtkMRMLIGTLConnectorNode* trackingNode = 
-      vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
-    if (trackingNode)
-      {
-      trackingNode->SetName("BetaProbeTrackingDevice");
-      this->mrmlScene()->AddNode(trackingNode);
-      trackingNode->SetTypeClient(BRAINLAB_IP, BRAINLAB_PORT);
-      trackingNode->Start();
-      nodeAdded->SetTrackingDeviceNode(trackingNode);
-
-      // Connect events
-      qvtkConnect(trackingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
-		  this, SLOT(onTrackingNodeConnected()));
-      qvtkConnect(trackingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
-		  this, SLOT(onTrackingNodeDisconnected()));
-      }
-    
+    d->betaProbeNode = nodeAdded;
     d->LogRecorderWidget->setBetaProbeNode(nodeAdded);
+
+    this->StartConnections();
     }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::StartConnections()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->betaProbeNode)
+    {
+    return;
+    }
+
+  // Create new counting node if not existing
+  if (d->countingNode)
+    {
+    d->countingNode->deleteLater();
+    }
+
+  // Connect it
+  d->countingNode = new QUdpSocket(this);
+  QHostAddress betaProbeAddress = QHostAddress(QString::fromStdString(d->BetaProbe.IPAddress));
+  if (d->countingNode->bind(betaProbeAddress, d->BetaProbe.Port))
+    {
+    this->onCountingNodeConnected();
+    connect(d->countingNode, SIGNAL(readyRead()),
+	    this, SLOT(onCountsReceived()));
+    }
+    
+  // Create new tracking node if not existing
+  if (!d->trackingNode)
+    {
+      d->trackingNode =
+	vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
+    if (d->trackingNode)
+      {
+      d->trackingNode->SetName("BetaProbeTrackingDevice");
+      this->mrmlScene()->AddNode(d->trackingNode);
+      d->trackingNode->SetTypeClient(d->BrainLab.IPAddress.c_str(), d->BrainLab.Port);
+      d->betaProbeNode->SetTrackingDeviceNode(d->trackingNode);
+      }
+    }
+
+  // Connect it
+  if (d->trackingNode->Start())
+    {
+    // Connect events
+    qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
+		this, SLOT(onTrackingNodeConnected()));
+    qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
+		this, SLOT(onTrackingNodeDisconnected()));
+    }
+    
 }
 
 //-----------------------------------------------------------------------------
@@ -204,6 +245,16 @@ void qSlicerBetaProbeModuleWidget::onTrackingNodeDisconnected()
   Q_D(qSlicerBetaProbeModuleWidget);
 
   this->setTrackingStatus(false);
+
+  // Stop recording
+  d->LogRecorderWidget->connectionBroken();
+
+  // Close connection
+  if (!d->trackingNode)
+    {
+    return;
+    }
+  d->trackingNode->Stop();
 }
 
 //-----------------------------------------------------------------------------
@@ -220,4 +271,42 @@ void qSlicerBetaProbeModuleWidget::onCountingNodeDisconnected()
   Q_D(qSlicerBetaProbeModuleWidget);
 
   this->setBetaProbeStatus(false);
+
+  // Stop recording
+  d->LogRecorderWidget->connectionBroken();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onCountsReceived()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->countingNode || !d->betaProbeNode || !d->udpTimeout)
+    {
+    return;
+    }
+  
+  while(d->countingNode->hasPendingDatagrams())
+    {
+    // BetaProbe system sends data every 100ms
+    // Timeout if no data during 500ms
+    d->udpTimeout->start(500);
+
+    // Read data
+    QByteArray datagram;
+    datagram.resize(d->countingNode->pendingDatagramSize());
+    d->countingNode->readDatagram(datagram.data(), datagram.size());
+    
+    // Write datagrams
+    QString dataReceived = QString(datagram);
+    QString date = dataReceived.section(',',0,0);
+    QString time = dataReceived.section(',',1,1);
+    double s = dataReceived.section(',',2,2).toDouble();
+    double b = dataReceived.section(',',3,3).toDouble();
+    double g = dataReceived.section(',',4,4).toDouble();
+
+    d->betaProbeNode->WriteCountData(date.toStdString(),
+				     time.toStdString(),
+				     s, b, g);
+    }
 }

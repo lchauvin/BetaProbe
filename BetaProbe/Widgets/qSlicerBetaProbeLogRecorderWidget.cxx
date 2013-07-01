@@ -196,18 +196,16 @@ void qSlicerBetaProbeLogRecorderWidget
   d->recording = (state == Qt::Checked ? true : false);
   if (d->recording)
     {
-    d->recordingFile << std::endl
-		     << std::endl
-		     << "Start recording at: " << QTime::currentTime().toString().toStdString()
-		     << std::endl << "--------------------------------------------------"
+    d->recordingFile << std::endl << std::endl
+		     << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
+		     << "--------------------------------------------------" << std::endl
 		     << std::endl;    
     }
   else
     {
     d->recordingFile << std::endl
-		     << std::endl << "--------------------------------------------------"
-		     << "End recording at: " << QTime::currentTime().toString().toStdString()
-		     << std::endl
+		     << "--------------------------------------------------" << std::endl
+		     << "End recording at: " << QTime::currentTime().toString().toStdString() << std::endl
 		     << std::endl;    
     }
 }
@@ -218,7 +216,7 @@ void qSlicerBetaProbeLogRecorderWidget
 {
   Q_D(qSlicerBetaProbeLogRecorderWidget);
 
-  if (d->logFileOpen)
+  if (d->recordingFile && d->logFileOpen)
     {
     d->recordingFile << string << std::endl;
     }
@@ -268,7 +266,17 @@ void qSlicerBetaProbeLogRecorderWidget
     {
     std::stringstream dataReceived;
     dataReceived << curPos->x << "\t" << curPos->y << "\t" << curPos->z << "\t"
-		 << curVal->beta << "\t" << curVal->gamma << "\t" << curVal->smoothed << std::endl;
+		 << curVal->beta << "\t" << curVal->gamma << "\t" << curVal->smoothed 
+		 << "\t" << curVal->date.c_str() << "\t" << curVal->time.c_str() <<std::endl;
     this->recordData(dataReceived.str().c_str());
     }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::connectionBroken()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  d->RecordCheckbox->setCheckState(Qt::Unchecked);
 }

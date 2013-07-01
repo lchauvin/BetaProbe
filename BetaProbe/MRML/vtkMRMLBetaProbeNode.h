@@ -46,6 +46,8 @@ public:
 
   typedef struct
   {
+    std::string date;
+    std::string time;
     double beta;
     double gamma;
     double smoothed;
@@ -85,11 +87,14 @@ public:
   void SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode* trackingNode);
   vtkGetObjectMacro(TrackingDeviceNode, vtkMRMLIGTLConnectorNode);
 
-  void SetCountingDeviceNode(vtkMRMLIGTLConnectorNode* countingNode);
-  vtkGetObjectMacro(CountingDeviceNode, vtkMRMLIGTLConnectorNode);
-
   trackingData* GetCurrentPosition();
   countingData* GetCurrentCounts();
+
+  void WriteCountData(std::string date,
+		      std::string time,
+		      double smoothed,
+		      double beta,
+		      double gamma);
 
 protected:
   vtkMRMLBetaProbeNode();

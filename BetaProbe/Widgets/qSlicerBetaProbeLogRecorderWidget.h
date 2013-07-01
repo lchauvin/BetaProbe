@@ -55,6 +55,7 @@ public:
   void closeLogFile();
   void recordData(const char* string);
   void setBetaProbeNode(vtkMRMLBetaProbeNode* newBetaProbeNode);
+  void connectionBroken();
 
 protected slots:
   void onSelectFileClicked();
