@@ -46,6 +46,8 @@ public:
   QTimer* udpTimeout;
   qSlicerBetaProbeModuleWidget::HostInformation BrainLab;
   qSlicerBetaProbeModuleWidget::HostInformation BetaProbe;
+  bool betaProbeStatus;
+  bool trackingStatus;
 };
 
 //-----------------------------------------------------------------------------
@@ -58,6 +60,9 @@ qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
   this->trackingNode = NULL;
   this->countingNode = NULL;
   this->udpTimeout = new QTimer();
+
+  this->betaProbeStatus = false;
+  this->trackingStatus = false;
 
   this->BrainLab.IPAddress.assign("127.0.0.1");
   this->BrainLab.Port = 22222;
@@ -144,13 +149,12 @@ void qSlicerBetaProbeModuleWidget::StartConnections()
     }
 
   // Create new counting node if not existing
-  if (d->countingNode)
+  if (!d->countingNode)
     {
-    d->countingNode->deleteLater();
+    d->countingNode = new QUdpSocket(this);
     }
 
   // Connect it
-  d->countingNode = new QUdpSocket(this);
   QHostAddress betaProbeAddress = QHostAddress(QString::fromStdString(d->BetaProbe.IPAddress));
   if (d->countingNode->bind(betaProbeAddress, d->BetaProbe.Port))
     {
@@ -177,6 +181,8 @@ void qSlicerBetaProbeModuleWidget::StartConnections()
   if (d->trackingNode->Start())
     {
     // Connect events
+    qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::ReceiveEvent,
+		this, SLOT(onTrackingNodeReceivedData()));    
     qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
 		this, SLOT(onTrackingNodeConnected()));
     qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
@@ -206,6 +212,8 @@ void qSlicerBetaProbeModuleWidget::setBetaProbeStatus(bool status)
 
   d->BetaProbeStatusLabel->setPalette(bgColor);
   d->BetaProbeStatusLabel->setText(labelText);
+
+  d->betaProbeStatus = status;
 }
 
 //-----------------------------------------------------------------------------
@@ -229,6 +237,8 @@ void qSlicerBetaProbeModuleWidget::setTrackingStatus(bool status)
 
   d->TrackingStatusLabel->setPalette(bgColor);
   d->TrackingStatusLabel->setText(labelText);
+
+  d->trackingStatus = status;
 }
 
 //-----------------------------------------------------------------------------
@@ -255,6 +265,37 @@ void qSlicerBetaProbeModuleWidget::onTrackingNodeDisconnected()
     return;
     }
   d->trackingNode->Stop();
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onTrackingNodeReceivedData()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->betaProbeNode)
+    {
+    return;
+    }
+
+  // Get counts informations and update widget
+  vtkMRMLBetaProbeNode::countingData* newCountingData
+    = d->betaProbeNode->GetCurrentCounts();
+  if (newCountingData)
+    {
+    d->SmoothedLine->setText(QString::number(newCountingData->Smoothed));
+    d->BetaLine->setText(QString::number(newCountingData->Beta));
+    d->GammaLine->setText(QString::number(newCountingData->Gamma));
+    }
+
+  // Get position informations and update widget
+  vtkMRMLBetaProbeNode::trackingData* newTrackingData
+    = d->betaProbeNode->GetCurrentPosition();
+  if (newTrackingData)
+    {
+    d->XLine->setText(QString::number(newTrackingData->X));
+    d->YLine->setText(QString::number(newTrackingData->Y));
+    d->ZLine->setText(QString::number(newTrackingData->Z));
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -286,11 +327,17 @@ void qSlicerBetaProbeModuleWidget::onCountsReceived()
     return;
     }
   
+  if (!d->betaProbeStatus)
+    {
+    // Connection is back
+    this->setBetaProbeStatus(true);
+    }
+
   while(d->countingNode->hasPendingDatagrams())
     {
     // BetaProbe system sends data every 100ms
-    // Timeout if no data during 500ms
-    d->udpTimeout->start(500);
+    // Timeout if no data during 1000ms
+    d->udpTimeout->start(1000);
 
     // Read data
     QByteArray datagram;

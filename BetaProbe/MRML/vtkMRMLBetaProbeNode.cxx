@@ -44,15 +44,15 @@ vtkMRMLBetaProbeNode::vtkMRMLBetaProbeNode()
   this->TrackingDeviceNode = NULL;
   this->numberOfTrackingDataReceived = 0;
   
-  this->currentPosition.x = 0.0;
-  this->currentPosition.y = 0.0;
-  this->currentPosition.z = 0.0;
+  this->currentPosition.X = 0.0;
+  this->currentPosition.Y = 0.0;
+  this->currentPosition.Z = 0.0;
 
-  this->currentValues.date.assign("");
-  this->currentValues.time.assign("");
-  this->currentValues.beta     = 0.0;
-  this->currentValues.gamma    = 0.0;
-  this->currentValues.smoothed = 0.0;
+  this->currentValues.Date.assign("");
+  this->currentValues.Time.assign("");
+  this->currentValues.Smoothed = 0.0;
+  this->currentValues.Beta     = 0.0;
+  this->currentValues.Gamma    = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -91,8 +91,8 @@ void vtkMRMLBetaProbeNode::UpdateScene(vtkMRMLScene *scene)
 
 //---------------------------------------------------------------------------
 void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
-                                           unsigned long event, 
-                                           void *callData )
+					       unsigned long event, 
+					       void *callData )
 {
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
@@ -111,10 +111,10 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
 	vtkSmartPointer<vtkMatrix4x4> matrixReceived =
 	  vtkSmartPointer<vtkMatrix4x4>::New();
 	transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
-	
-	this->currentPosition.x = matrixReceived->GetElement(0,3);
-	this->currentPosition.y = matrixReceived->GetElement(1,3);
-	this->currentPosition.z = matrixReceived->GetElement(2,3);
+
+	this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
+	this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
+	this->currentPosition.Z = std::floor(matrixReceived->GetElement(2,3)*100)/100;
 	
 	if (this->numberOfTrackingDataReceived < MAX_DATA_SAVED)
 	  {
@@ -125,6 +125,7 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
 	  this->trackerPosition[std::fmod(this->numberOfTrackingDataReceived, MAX_DATA_SAVED)] = this->currentPosition;
 	  }
 	this->numberOfTrackingDataReceived++;
+	this->TrackingDeviceNode->InvokeEvent(vtkMRMLIGTLConnectorNode::ReceiveEvent);
 	this->Modified();
 	}
       }
@@ -178,11 +179,11 @@ void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
     return;
     }
 
-  this->currentValues.date.assign(date);
-  this->currentValues.time.assign(time);
-  this->currentValues.smoothed = smoothed;
-  this->currentValues.beta     = beta;
-  this->currentValues.gamma    = gamma;
+  this->currentValues.Date.assign(date);
+  this->currentValues.Time.assign(time);
+  this->currentValues.Smoothed = smoothed;
+  this->currentValues.Beta     = beta;
+  this->currentValues.Gamma    = gamma;
   
   if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
     {

@@ -51,6 +51,7 @@ public slots:
   void onNodeAdded(vtkMRMLNode* node);
   void onTrackingNodeConnected();
   void onTrackingNodeDisconnected();
+  void onTrackingNodeReceivedData();
   void onCountingNodeConnected();
   void onCountingNodeDisconnected();
   void onCountsReceived();

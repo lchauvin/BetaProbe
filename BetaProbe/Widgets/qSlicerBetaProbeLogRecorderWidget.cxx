@@ -265,9 +265,9 @@ void qSlicerBetaProbeLogRecorderWidget
   if (curPos && curVal)
     {
     std::stringstream dataReceived;
-    dataReceived << curPos->x << "\t" << curPos->y << "\t" << curPos->z << "\t"
-		 << curVal->beta << "\t" << curVal->gamma << "\t" << curVal->smoothed 
-		 << "\t" << curVal->date.c_str() << "\t" << curVal->time.c_str() <<std::endl;
+    dataReceived  << curVal->Date.c_str() << "\t" << curVal->Time.c_str() << "\t"
+                  << curVal->Smoothed << "\t" << curVal->Beta << "\t" << curVal->Gamma << "\t"
+                  << curPos->X << "\t" << curPos->Y << "\t" << curPos->Z << std::endl;
     this->recordData(dataReceived.str().c_str());
     }
 }

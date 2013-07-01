@@ -39,18 +39,18 @@ public:
 
   typedef struct
   {
-    double x;
-    double y;
-    double z;
+    double X;
+    double Y;
+    double Z;
   }trackingData;
 
   typedef struct
   {
-    std::string date;
-    std::string time;
-    double beta;
-    double gamma;
-    double smoothed;
+    std::string Date;
+    std::string Time;
+    double Smoothed;
+    double Beta;
+    double Gamma;
   }countingData;
 
   //--------------------------------------------------------------------------
