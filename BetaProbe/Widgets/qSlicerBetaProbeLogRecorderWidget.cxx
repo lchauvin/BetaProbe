@@ -45,6 +45,8 @@ protected:
   std::ofstream recordingFile;
   bool logFileOpen;
   bool recording;
+  bool singleModeRecording;
+  int singleShotStreak;
 
 public:
   qSlicerBetaProbeLogRecorderWidgetPrivate(
@@ -62,6 +64,8 @@ qSlicerBetaProbeLogRecorderWidgetPrivate
 {
   this->logFileOpen = false;
   this->recording = false;
+  this->singleModeRecording = true;
+  this->singleShotStreak = 0;
 }
 
 // --------------------------------------------------------------------------
@@ -96,8 +100,11 @@ qSlicerBetaProbeLogRecorderWidget
   connect(d->SelectFileButton, SIGNAL(clicked()),
 	  this, SLOT(onSelectFileClicked()));
 
-  connect(d->RecordCheckbox, SIGNAL(stateChanged(int)),
-	  this, SLOT(onRecordChecked(int)));
+  connect(d->SingleModeRadio, SIGNAL(toggled(bool)),
+	  this, SLOT(onRecordModeChanged(bool)));
+
+  connect(d->RecordButton, SIGNAL(clicked()),
+	  this, SLOT(onRecordButtonClicked()));
 }
 
 //-----------------------------------------------------------------------------
@@ -108,6 +115,7 @@ qSlicerBetaProbeLogRecorderWidget
 
   if (d->recordingFile.is_open())
     {
+    this->endSingleShotRecording();
     this->closeLogFile();
     }
 }
@@ -128,6 +136,21 @@ void qSlicerBetaProbeLogRecorderWidget
 						  previousPath.c_str(),
 						  tr("TXT (*.txt)"));
   
+
+  bool continousRecordingStatus = !d->singleModeRecording & d->recording;
+  
+  // Add footers to currently open file
+  if (d->logFileOpen)
+    {
+    d->recording = false;
+    this->endSingleShotRecording();
+    if (continousRecordingStatus)
+      {
+      this->endContinuousRecording();
+      }
+    }
+
+  // Close file and open new one
   if (!fileName.isEmpty())
     {
     // New file choosen. Close old file.
@@ -137,10 +160,13 @@ void qSlicerBetaProbeLogRecorderWidget
   
   if (d->logFileOpen)
     {
-    if (!d->RecordCheckbox->isEnabled())
+    // Put button state back
+    if (continousRecordingStatus)
       {
-      d->RecordCheckbox->setEnabled(true);
+      this->beginContinuousRecording();
+      d->recording = true;
       }
+    d->RecordGroupBox->setEnabled(true);
     }
 }
 
@@ -184,41 +210,26 @@ void qSlicerBetaProbeLogRecorderWidget
 
 //-----------------------------------------------------------------------------
 void qSlicerBetaProbeLogRecorderWidget
-::onRecordChecked(int state)
-{
-  Q_D(qSlicerBetaProbeLogRecorderWidget);
-
-  if (!d->recordingFile)
-    {
-    return;
-    }
-
-  d->recording = (state == Qt::Checked ? true : false);
-  if (d->recording)
-    {
-    d->recordingFile << std::endl << std::endl
-		     << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
-		     << "--------------------------------------------------" << std::endl
-		     << std::endl;    
-    }
-  else
-    {
-    d->recordingFile << std::endl
-		     << "--------------------------------------------------" << std::endl
-		     << "End recording at: " << QTime::currentTime().toString().toStdString() << std::endl
-		     << std::endl;    
-    }
-}
-
-//-----------------------------------------------------------------------------
-void qSlicerBetaProbeLogRecorderWidget
-::recordData(const char* string)
+::recordData()
 {
   Q_D(qSlicerBetaProbeLogRecorderWidget);
 
   if (d->recordingFile && d->logFileOpen)
     {
-    d->recordingFile << string << std::endl;
+    vtkMRMLBetaProbeNode::trackingData* curPos =
+      d->betaProbeMRMLNode->GetCurrentPosition();
+    vtkMRMLBetaProbeNode::countingData* curVal =
+      d->betaProbeMRMLNode->GetCurrentCounts();
+    
+    if (curPos && curVal)
+      {
+      std::stringstream dataReceived;
+      dataReceived  << curVal->Date.c_str() << "\t" << curVal->Time.c_str() << "\t"
+		    << curVal->Smoothed << "\t" << curVal->Beta << "\t" << curVal->Gamma << "\t"
+		    << curPos->X << "\t" << curPos->Y << "\t" << curPos->Z;
+
+      d->recordingFile << dataReceived.str() << std::endl;
+      }
     }
 }
 
@@ -232,10 +243,6 @@ void qSlicerBetaProbeLogRecorderWidget
     {
     return;
     }
-
-  // Observe events
-  qvtkReconnect(d->betaProbeMRMLNode, newBetaProbeNode, vtkCommand::ModifiedEvent,
-		this, SLOT(onDataNodeModified()));
 
   d->betaProbeMRMLNode = newBetaProbeNode;
 }
@@ -256,20 +263,7 @@ void qSlicerBetaProbeLogRecorderWidget
     return;
     }
 
-  // TODO: How to know which data received ?
-  vtkMRMLBetaProbeNode::trackingData* curPos =
-    d->betaProbeMRMLNode->GetCurrentPosition();
-  vtkMRMLBetaProbeNode::countingData* curVal =
-    d->betaProbeMRMLNode->GetCurrentCounts();
-
-  if (curPos && curVal)
-    {
-    std::stringstream dataReceived;
-    dataReceived  << curVal->Date.c_str() << "\t" << curVal->Time.c_str() << "\t"
-                  << curVal->Smoothed << "\t" << curVal->Beta << "\t" << curVal->Gamma << "\t"
-                  << curPos->X << "\t" << curPos->Y << "\t" << curPos->Z << std::endl;
-    this->recordData(dataReceived.str().c_str());
-    }
+  this->recordData();
 }
 
 //-----------------------------------------------------------------------------
@@ -278,5 +272,143 @@ void qSlicerBetaProbeLogRecorderWidget
 {
   Q_D(qSlicerBetaProbeLogRecorderWidget);
 
-  d->RecordCheckbox->setCheckState(Qt::Unchecked);
+  if (!d->singleModeRecording && d->RecordButton->isChecked())
+    {
+    d->RecordButton->setChecked(false);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::onRecordModeChanged(bool singleMode)
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+  
+  if (singleMode)
+    {
+    d->RecordButton->setCheckable(false);
+    }
+  else
+    {
+    // Continous Mode
+    d->RecordButton->setCheckable(true);    
+    }
+
+  d->singleModeRecording = singleMode;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::onRecordButtonClicked()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+  
+  if (d->singleModeRecording)
+    {
+    this->beginSingleShotRecording();
+    }
+  else
+    {
+    d->recording = d->RecordButton->isChecked();
+    if (d->recording)
+      {
+      // Do not allow changing mode while recording
+      d->SingleModeRadio->setEnabled(false);
+      d->ContinuousModeRadio->setEnabled(false);
+      this->beginContinuousRecording();
+      }
+    else
+      {
+      this->endContinuousRecording();
+      d->SingleModeRadio->setEnabled(true);
+      d->ContinuousModeRadio->setEnabled(true);
+      }
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::beginSingleShotRecording()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+  
+  if (!d->recordingFile)
+    {
+    return;
+    }
+
+  if (d->singleShotStreak == 0)
+    {
+    d->recordingFile << std::endl
+		     << "Single shots data" << std::endl
+		     << "--------------------------------------------------" << std::endl;
+    }
+  
+  this->recordData();
+  d->singleShotStreak++;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::endSingleShotRecording()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  if (!d->recordingFile)
+    {
+    return;
+    }
+  
+  if (d->singleShotStreak != 0)
+    {
+    d->recordingFile << "--------------------------------------------------" << std::endl
+		     << "End of single shots" << std::endl
+		     << std::endl;
+    d->singleShotStreak = 0;
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::beginContinuousRecording()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  if (!d->recordingFile)
+    {
+    return;
+    }
+
+  this->endSingleShotRecording();
+
+  d->recordingFile << std::endl
+		   << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
+		   << "--------------------------------------------------" << std::endl;
+  
+  // Observe modified event
+  qvtkConnect(d->betaProbeMRMLNode, vtkCommand::ModifiedEvent,
+	      this, SLOT(onDataNodeModified()));
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::endContinuousRecording()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  if (!d->recordingFile)
+    {
+    return;
+    }
+
+  if (!d->singleModeRecording)
+    {
+    d->recordingFile << "--------------------------------------------------" << std::endl
+		     << "End recording at: " << QTime::currentTime().toString().toStdString() << std::endl
+		     << std::endl;
+    }
+
+  // Stop observing modified event
+  qvtkDisconnect(d->betaProbeMRMLNode, vtkCommand::ModifiedEvent,
+		 this, SLOT(onDataNodeModified()));
 }

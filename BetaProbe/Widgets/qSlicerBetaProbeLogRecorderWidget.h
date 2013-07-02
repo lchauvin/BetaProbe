@@ -53,14 +53,20 @@ public:
   virtual ~qSlicerBetaProbeLogRecorderWidget();
   void openLogFile(QString filenamePath);
   void closeLogFile();
-  void recordData(const char* string);
+  void recordData();
   void setBetaProbeNode(vtkMRMLBetaProbeNode* newBetaProbeNode);
   void connectionBroken();
 
 protected slots:
   void onSelectFileClicked();
-  void onRecordChecked(int state);
   void onDataNodeModified();
+  void onRecordModeChanged(bool singleMode);
+  void onRecordButtonClicked();
+
+  void beginSingleShotRecording();
+  void endSingleShotRecording();
+  void beginContinuousRecording();
+  void endContinuousRecording();
 
 protected:
   QScopedPointer<qSlicerBetaProbeLogRecorderWidgetPrivate> d_ptr;

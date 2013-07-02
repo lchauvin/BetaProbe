@@ -179,6 +179,11 @@ void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
     return;
     }
 
+  if (!&this->currentValues)
+    {
+    return;
+    }
+
   this->currentValues.Date.assign(date);
   this->currentValues.Time.assign(time);
   this->currentValues.Smoothed = smoothed;
