@@ -72,11 +72,22 @@
        </layout>
       </item>
       <item>
-       <widget class="QPushButton" name="RecordButton">
-        <property name="text">
-         <string>Record</string>
-        </property>
-       </widget>
+       <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <item>
+         <widget class="QPushButton" name="RecordButton">
+          <property name="text">
+           <string>Record</string>
+          </property>
+         </widget>
+        </item>
+        <item>
+         <widget class="QPushButton" name="FlagDataButton">
+          <property name="text">
+           <string>Flag Data</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
       </item>
      </layout>
     </widget>

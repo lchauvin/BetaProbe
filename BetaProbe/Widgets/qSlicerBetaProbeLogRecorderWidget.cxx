@@ -47,6 +47,7 @@ protected:
   bool recording;
   bool singleModeRecording;
   int singleShotStreak;
+  bool flagData;
 
 public:
   qSlicerBetaProbeLogRecorderWidgetPrivate(
@@ -66,6 +67,7 @@ qSlicerBetaProbeLogRecorderWidgetPrivate
   this->recording = false;
   this->singleModeRecording = true;
   this->singleShotStreak = 0;
+  this->flagData = false;
 }
 
 // --------------------------------------------------------------------------
@@ -105,6 +107,9 @@ qSlicerBetaProbeLogRecorderWidget
 
   connect(d->RecordButton, SIGNAL(clicked()),
 	  this, SLOT(onRecordButtonClicked()));
+
+  connect(d->FlagDataButton, SIGNAL(clicked()),
+	  this, SLOT(onFlagDataClicked()));
 }
 
 //-----------------------------------------------------------------------------
@@ -167,6 +172,7 @@ void qSlicerBetaProbeLogRecorderWidget
       d->recording = true;
       }
     d->RecordGroupBox->setEnabled(true);
+    d->FlagDataButton->setEnabled(false);
     }
 }
 
@@ -227,6 +233,12 @@ void qSlicerBetaProbeLogRecorderWidget
       dataReceived  << curVal->Date.c_str() << "\t" << curVal->Time.c_str() << "\t"
 		    << curVal->Smoothed << "\t" << curVal->Beta << "\t" << curVal->Gamma << "\t"
 		    << curPos->X << "\t" << curPos->Y << "\t" << curPos->Z;
+
+      if (d->flagData)
+	{
+	dataReceived << "\t\t <--- Data Marked";
+	d->flagData = false;
+	}
 
       d->recordingFile << dataReceived.str() << std::endl;
       }
@@ -385,6 +397,8 @@ void qSlicerBetaProbeLogRecorderWidget
 		   << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
 		   << "--------------------------------------------------" << std::endl;
   
+  d->FlagDataButton->setEnabled(true);
+
   // Observe modified event
   qvtkConnect(d->betaProbeMRMLNode, vtkCommand::ModifiedEvent,
 	      this, SLOT(onDataNodeModified()));
@@ -401,6 +415,8 @@ void qSlicerBetaProbeLogRecorderWidget
     return;
     }
 
+  d->FlagDataButton->setEnabled(false);
+
   if (!d->singleModeRecording)
     {
     d->recordingFile << "--------------------------------------------------" << std::endl
@@ -411,4 +427,13 @@ void qSlicerBetaProbeLogRecorderWidget
   // Stop observing modified event
   qvtkDisconnect(d->betaProbeMRMLNode, vtkCommand::ModifiedEvent,
 		 this, SLOT(onDataNodeModified()));
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeLogRecorderWidget
+::onFlagDataClicked()
+{
+  Q_D(qSlicerBetaProbeLogRecorderWidget);
+
+  d->flagData = true;
 }

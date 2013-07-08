@@ -62,6 +62,7 @@ protected slots:
   void onDataNodeModified();
   void onRecordModeChanged(bool singleMode);
   void onRecordButtonClicked();
+  void onFlagDataClicked();
 
   void beginSingleShotRecording();
   void endSingleShotRecording();
