@@ -139,9 +139,8 @@ void qSlicerBetaProbeLogRecorderWidget
     }    
   QString fileName = QFileDialog::getSaveFileName(this, tr("Select Output File"),
 						  previousPath.c_str(),
-						  tr("TXT (*.txt)"));
+						  tr("CSV (*.csv)"));
   
-
   bool continousRecordingStatus = !d->singleModeRecording & d->recording;
   
   // Add footers to currently open file
@@ -172,7 +171,7 @@ void qSlicerBetaProbeLogRecorderWidget
       d->recording = true;
       }
     d->RecordGroupBox->setEnabled(true);
-    d->FlagDataButton->setEnabled(false);
+    d->FlagDataButton->setEnabled(!d->singleModeRecording);
     }
 }
 
@@ -230,13 +229,13 @@ void qSlicerBetaProbeLogRecorderWidget
     if (curPos && curVal)
       {
       std::stringstream dataReceived;
-      dataReceived  << curVal->Date.c_str() << "\t" << curVal->Time.c_str() << "\t"
-		    << curVal->Smoothed << "\t" << curVal->Beta << "\t" << curVal->Gamma << "\t"
-		    << curPos->X << "\t" << curPos->Y << "\t" << curPos->Z;
+      dataReceived  << curVal->Date.c_str() << "," << curVal->Time.c_str() << ","
+		    << curVal->Smoothed << "," << curVal->Beta << "," << curVal->Gamma << ","
+		    << curPos->X << "," << curPos->Y << "," << curPos->Z;
 
       if (d->flagData)
 	{
-	dataReceived << "\t\t <--- Data Marked";
+	dataReceived << ",Flagged";
 	d->flagData = false;
 	}
 
@@ -353,7 +352,9 @@ void qSlicerBetaProbeLogRecorderWidget
     {
     d->recordingFile << std::endl
 		     << "Single shots data" << std::endl
-		     << "--------------------------------------------------" << std::endl;
+		     << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
+		     << "Date,Time,Smoothed,Beta,Gamma,X,Y,Z" << std::endl
+		     << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
     }
   
   this->recordData();
@@ -373,7 +374,7 @@ void qSlicerBetaProbeLogRecorderWidget
   
   if (d->singleShotStreak != 0)
     {
-    d->recordingFile << "--------------------------------------------------" << std::endl
+    d->recordingFile << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
 		     << "End of single shots" << std::endl
 		     << std::endl;
     d->singleShotStreak = 0;
@@ -395,7 +396,9 @@ void qSlicerBetaProbeLogRecorderWidget
 
   d->recordingFile << std::endl
 		   << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
-		   << "--------------------------------------------------" << std::endl;
+		   << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
+		   << "Date,Time,Smoothed,Beta,Gamma,X,Y,Z,Flag" << std::endl
+		   << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
   
   d->FlagDataButton->setEnabled(true);
 
@@ -419,7 +422,7 @@ void qSlicerBetaProbeLogRecorderWidget
 
   if (!d->singleModeRecording)
     {
-    d->recordingFile << "--------------------------------------------------" << std::endl
+    d->recordingFile << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
 		     << "End recording at: " << QTime::currentTime().toString().toStdString() << std::endl
 		     << std::endl;
     }
