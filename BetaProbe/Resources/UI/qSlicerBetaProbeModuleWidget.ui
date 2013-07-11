@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>371</width>
-    <height>338</height>
+    <width>422</width>
+    <height>449</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -126,6 +126,68 @@
          </layout>
         </item>
        </layout>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButton">
+     <property name="text">
+      <string>Export</string>
+     </property>
+     <property name="collapsed">
+      <bool>true</bool>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_2">
+      <item>
+       <widget class="qSlicerBetaProbeLogRecorderWidget" name="LogRecorderWidget" native="true"/>
+      </item>
+     </layout>
+    </widget>
+   </item>
+   <item>
+    <widget class="ctkCollapsibleButton" name="CollapsibleButton_3">
+     <property name="text">
+      <string>Color Mapping</string>
+     </property>
+     <property name="contentsFrameShape">
+      <enum>QFrame::StyledPanel</enum>
+     </property>
+     <layout class="QVBoxLayout" name="verticalLayout_5">
+      <item>
+       <widget class="QLabel" name="label_10">
+        <property name="text">
+         <string>Color Window</string>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="ctkDoubleRangeSlider" name="DoubleRangeSlider">
+        <property name="styleSheet">
+         <string notr="true">QSlider{
+	border: 1px solid black;
+	height: 30px;
+}
+
+QSlider::groove:horizontal {
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 0, 255, 255), stop:0.2 rgba(0, 255, 255, 255), stop:0.4 rgba(0, 255, 0, 255), stop:0.6 rgba(255, 255, 0, 255), stop:1 rgba(255, 0, 0, 255));
+}
+
+ QSlider::handle:horizontal {
+	background: qlineargradient(x1:0, y1:0, x2:1, y2:1, stop:0 #b0b0b0, stop:1 white);
+	border: 1px solid #5c5c5c; 
+	border-radius: 8px;
+	width: 15px;
+	margin: 6px 0px; 
+ }</string>
+        </property>
+        <property name="orientation">
+         <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
       </item>
      </layout>
     </widget>
@@ -256,24 +318,6 @@
     </widget>
    </item>
    <item>
-    <widget class="ctkCollapsibleButton" name="CollapsibleButton">
-     <property name="text">
-      <string>Record</string>
-     </property>
-     <property name="collapsed">
-      <bool>true</bool>
-     </property>
-     <property name="contentsFrameShape">
-      <enum>QFrame::StyledPanel</enum>
-     </property>
-     <layout class="QVBoxLayout" name="verticalLayout_2">
-      <item>
-       <widget class="qSlicerBetaProbeLogRecorderWidget" name="LogRecorderWidget" native="true"/>
-      </item>
-     </layout>
-    </widget>
-   </item>
-   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>
@@ -305,6 +349,11 @@
    <extends>QWidget</extends>
    <header>ctkCollapsibleButton.h</header>
    <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>ctkDoubleRangeSlider</class>
+   <extends>QWidget</extends>
+   <header>ctkDoubleRangeSlider.h</header>
   </customwidget>
   <customwidget>
    <class>qSlicerBetaProbeLogRecorderWidget</class>
