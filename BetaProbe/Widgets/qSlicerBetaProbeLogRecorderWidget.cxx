@@ -230,7 +230,7 @@ void qSlicerBetaProbeLogRecorderWidget
       {
       std::stringstream dataReceived;
       dataReceived  << curVal->Date.c_str() << "," << curVal->Time.c_str() << ","
-		    << curVal->Smoothed << "," << curVal->Beta << "," << curVal->Gamma << ","
+		    << curVal->Smoothed << "," << curVal->BetaGamma << "," << curVal->Gamma << ","
 		    << curPos->X << "," << curPos->Y << "," << curPos->Z;
 
       if (d->flagData)
@@ -353,7 +353,7 @@ void qSlicerBetaProbeLogRecorderWidget
     d->recordingFile << std::endl
 		     << "Single shots data" << std::endl
 		     << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
-		     << "Date,Time,Smoothed,Beta,Gamma,X,Y,Z" << std::endl
+		     << "Date,Time,Smoothed,Beta+Gamma,Gamma,X,Y,Z" << std::endl
 		     << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
     }
   
@@ -397,7 +397,7 @@ void qSlicerBetaProbeLogRecorderWidget
   d->recordingFile << std::endl
 		   << "Start recording at: " << QTime::currentTime().toString().toStdString() << std::endl
 		   << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl
-		   << "Date,Time,Smoothed,Beta,Gamma,X,Y,Z,Flag" << std::endl
+		   << "Date,Time,Smoothed,Beta+Gamma,Gamma,X,Y,Z,Flag" << std::endl
 		   << "-------------------------------------------------------------------------------------------------------------------------------------------------------------" << std::endl;
   
   d->FlagDataButton->setEnabled(true);

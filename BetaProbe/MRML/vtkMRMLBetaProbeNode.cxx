@@ -50,9 +50,9 @@ vtkMRMLBetaProbeNode::vtkMRMLBetaProbeNode()
 
   this->currentValues.Date.assign("");
   this->currentValues.Time.assign("");
-  this->currentValues.Smoothed = 0.0;
-  this->currentValues.Beta     = 0.0;
-  this->currentValues.Gamma    = 0.0;
+  this->currentValues.Smoothed  = 0.0;
+  this->currentValues.BetaGamma = 0.0;
+  this->currentValues.Gamma     = 0.0;
 }
 
 //----------------------------------------------------------------------------
@@ -170,7 +170,7 @@ vtkMRMLBetaProbeNode::countingData* vtkMRMLBetaProbeNode::GetCurrentCounts()
 void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
 					  std::string time,
 					  double smoothed,
-					  double beta,
+					  double betaGamma,
 					  double gamma)
 {
  
@@ -186,9 +186,9 @@ void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
 
   this->currentValues.Date.assign(date);
   this->currentValues.Time.assign(time);
-  this->currentValues.Smoothed = smoothed;
-  this->currentValues.Beta     = beta;
-  this->currentValues.Gamma    = gamma;
+  this->currentValues.Smoothed  = smoothed;
+  this->currentValues.BetaGamma = betaGamma;
+  this->currentValues.Gamma     = gamma;
   
   if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
     {

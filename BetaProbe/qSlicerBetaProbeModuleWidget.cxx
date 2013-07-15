@@ -283,7 +283,7 @@ void qSlicerBetaProbeModuleWidget::onTrackingNodeReceivedData()
   if (newCountingData)
     {
     d->SmoothedLine->setText(QString::number(newCountingData->Smoothed));
-    d->BetaLine->setText(QString::number(newCountingData->Beta));
+    d->BetaLine->setText(QString::number(newCountingData->BetaGamma));
     d->GammaLine->setText(QString::number(newCountingData->Gamma));
     }
 
@@ -349,11 +349,11 @@ void qSlicerBetaProbeModuleWidget::onCountsReceived()
     QString date = dataReceived.section(',',0,0);
     QString time = dataReceived.section(',',1,1);
     double s = dataReceived.section(',',2,2).toDouble();
-    double b = dataReceived.section(',',3,3).toDouble();
+    double c = dataReceived.section(',',3,3).toDouble();
     double g = dataReceived.section(',',4,4).toDouble();
 
     d->betaProbeNode->WriteCountData(date.toStdString(),
 				     time.toStdString(),
-				     s, b, g);
+				     s, c, g);
     }
 }

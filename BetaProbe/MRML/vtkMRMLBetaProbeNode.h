@@ -49,7 +49,7 @@ public:
     std::string Date;
     std::string Time;
     double Smoothed;
-    double Beta;
+    double BetaGamma;
     double Gamma;
   }countingData;
 
@@ -93,7 +93,7 @@ public:
   void WriteCountData(std::string date,
 		      std::string time,
 		      double smoothed,
-		      double beta,
+		      double betaGamma,
 		      double gamma);
 
 protected:
