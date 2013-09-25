@@ -1,9 +1,9 @@
 /*==============================================================================
 
   Program: 3D Slicer
- 
+
   Portions (c) Copyright Brigham and Women's Hospital (BWH) All Rights Reserved.
- 
+
   See COPYRIGHT.txt
   or http://www.slicer.org/copyright/copyright.txt for details.
 
@@ -12,15 +12,14 @@
   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
   See the License for the specific language governing permissions and
   limitations under the License.
- 
+
   This file was originally developed by Laurent Chauvin, Brigham and Women's
   Hospital. The project was supported by grants 5P01CA067165,
   5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377,
   5R42CA137886, 8P41EB015898
- 
-==============================================================================*/
 
-// 
+  ==============================================================================*/
+
 #define MAX_DATA_SAVED 50
 
 #include <cmath>
@@ -43,7 +42,7 @@ vtkMRMLBetaProbeNode::vtkMRMLBetaProbeNode()
   this->HideFromEditors = false;
   this->TrackingDeviceNode = NULL;
   this->numberOfTrackingDataReceived = 0;
-  
+
   this->currentPosition.X = 0.0;
   this->currentPosition.Y = 0.0;
   this->currentPosition.Z = 0.0;
@@ -91,8 +90,8 @@ void vtkMRMLBetaProbeNode::UpdateScene(vtkMRMLScene *scene)
 
 //---------------------------------------------------------------------------
 void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
-					       unsigned long event, 
-					       void *callData )
+                                               unsigned long event,
+                                               void *callData )
 {
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
@@ -102,56 +101,50 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
     // Data received
     if (event == vtkMRMLIGTLConnectorNode::ReceiveEvent)
       {
-      vtkMRMLIGTLConnectorNode* connector =
-	vtkMRMLIGTLConnectorNode::SafeDownCast(caller);
       vtkMRMLLinearTransformNode* transformReceived =
-	vtkMRMLLinearTransformNode::SafeDownCast(this->TrackingDeviceNode->GetIncomingMRMLNode(this->TrackingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
+        vtkMRMLLinearTransformNode::SafeDownCast(this->TrackingDeviceNode->GetIncomingMRMLNode(this->TrackingDeviceNode->GetNumberOfIncomingMRMLNodes()-1));
       if (transformReceived)
-	{
-	vtkSmartPointer<vtkMatrix4x4> matrixReceived =
-	  vtkSmartPointer<vtkMatrix4x4>::New();
-	transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
+        {
+        vtkSmartPointer<vtkMatrix4x4> matrixReceived =
+          vtkSmartPointer<vtkMatrix4x4>::New();
+        transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
 
-	this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
-	this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
-	this->currentPosition.Z = std::floor(matrixReceived->GetElement(2,3)*100)/100;
-	
-	if (this->numberOfTrackingDataReceived < MAX_DATA_SAVED)
-	  {
-	  this->trackerPosition.push_back(this->currentPosition);
-	  }
-	else
-	  {
-	  this->trackerPosition[std::fmod(this->numberOfTrackingDataReceived, MAX_DATA_SAVED)] = this->currentPosition;
-	  }
-	this->numberOfTrackingDataReceived++;
-	this->TrackingDeviceNode->InvokeEvent(vtkMRMLIGTLConnectorNode::ReceiveEvent);
-	this->Modified();
-	}
+        this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
+        this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
+        this->currentPosition.Z = std::floor(matrixReceived->GetElement(2,3)*100)/100;
+
+        this->trackerPosition.push_back(this->currentPosition);
+        this->countingValues.push_back(this->currentValues);
+
+        this->numberOfCountingDataReceived++;
+        this->numberOfTrackingDataReceived++;
+        this->TrackingDeviceNode->InvokeEvent(vtkMRMLIGTLConnectorNode::ReceiveEvent);
+        this->Modified();
+        }
       }
     else if (event == vtkMRMLIGTLConnectorNode::ConnectedEvent)
       {
       this->InvokeEvent(vtkMRMLIGTLConnectorNode::ConnectedEvent);
       }
     }
- }
+}
 
- //---------------------------------------------------------------------------
- void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *trackingNode)
- {
-   if (!trackingNode || (trackingNode == this->TrackingDeviceNode))
-     {
-     return;
-     }
+//---------------------------------------------------------------------------
+void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *trackingNode)
+{
+  if (!trackingNode || (trackingNode == this->TrackingDeviceNode))
+    {
+    return;
+    }
 
-   this->TrackingDeviceNode = trackingNode;
-   vtkNew<vtkIntArray> connectorNodeEvents;
-   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ReceiveEvent);
-   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ConnectedEvent);
-   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::DisconnectedEvent);
-   vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
-				  connectorNodeEvents.GetPointer());
-  
+  this->TrackingDeviceNode = trackingNode;
+  vtkNew<vtkIntArray> connectorNodeEvents;
+  connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ReceiveEvent);
+  connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ConnectedEvent);
+  connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::DisconnectedEvent);
+  vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
+                                  connectorNodeEvents.GetPointer());
+
 }
 
 //---------------------------------------------------------------------------
@@ -168,12 +161,11 @@ vtkMRMLBetaProbeNode::countingData* vtkMRMLBetaProbeNode::GetCurrentCounts()
 
 //---------------------------------------------------------------------------
 void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
-					  std::string time,
-					  double smoothed,
-					  double betaGamma,
-					  double gamma)
+                                          std::string time,
+                                          double smoothed,
+                                          double betaGamma,
+                                          double gamma)
 {
- 
   if (date.empty() || time.empty())
     {
     return;
@@ -189,14 +181,16 @@ void vtkMRMLBetaProbeNode::WriteCountData(std::string date,
   this->currentValues.Smoothed  = smoothed;
   this->currentValues.BetaGamma = betaGamma;
   this->currentValues.Gamma     = gamma;
-  
-  if (this->numberOfCountingDataReceived < MAX_DATA_SAVED)
-    {
-    this->countingValues.push_back(this->currentValues);
-    }
-  else
-    {
-    this->countingValues[std::fmod(this->numberOfCountingDataReceived, MAX_DATA_SAVED)] = this->currentValues;
-    }
-  this->numberOfCountingDataReceived++;
+}
+
+//---------------------------------------------------------------------------
+std::vector<vtkMRMLBetaProbeNode::trackingData> vtkMRMLBetaProbeNode::GetTrackerPositions()
+{
+  return this->trackerPosition;
+}
+
+//---------------------------------------------------------------------------
+std::vector<vtkMRMLBetaProbeNode::countingData> vtkMRMLBetaProbeNode::GetBetaProbeValues()
+{
+  return this->countingValues;
 }

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>422</width>
-    <height>449</height>
+    <height>530</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -158,6 +158,21 @@
      </property>
      <layout class="QVBoxLayout" name="verticalLayout_5">
       <item>
+       <widget class="qMRMLNodeComboBox" name="VolumeToMapSelector">
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLScalarVolumeNode</string>
+         </stringlist>
+        </property>
+        <property name="addEnabled">
+         <bool>false</bool>
+        </property>
+        <property name="removeEnabled">
+         <bool>false</bool>
+        </property>
+       </widget>
+      </item>
+      <item>
        <widget class="QLabel" name="label_10">
         <property name="text">
          <string>Color Window</string>
@@ -165,7 +180,7 @@
        </widget>
       </item>
       <item>
-       <widget class="ctkDoubleRangeSlider" name="DoubleRangeSlider">
+       <widget class="ctkDoubleRangeSlider" name="ColorWindowWidget">
         <property name="styleSheet">
          <string notr="true">QSlider{
 	border: 1px solid black;
@@ -184,8 +199,24 @@ QSlider::groove:horizontal {
 	margin: 6px 0px; 
  }</string>
         </property>
+        <property name="maximum">
+         <double>178.000000000000000</double>
+        </property>
+        <property name="maximumValue">
+         <double>178.000000000000000</double>
+        </property>
+        <property name="maximumPosition">
+         <double>178.000000000000000</double>
+        </property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
+        </property>
+       </widget>
+      </item>
+      <item>
+       <widget class="QPushButton" name="MapButton">
+        <property name="text">
+         <string>Map values received</string>
         </property>
        </widget>
       </item>
@@ -393,8 +424,24 @@ QSlider::groove:horizontal {
      <y>9</y>
     </hint>
     <hint type="destinationlabel">
-     <x>495</x>
-     <y>76</y>
+     <x>396</x>
+     <y>82</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerBetaProbeModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>VolumeToMapSelector</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>88</x>
+     <y>4</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>64</x>
+     <y>330</y>
     </hint>
    </hints>
   </connection>

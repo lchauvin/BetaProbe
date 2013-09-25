@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-==============================================================================*/
+  ==============================================================================*/
 
 // Qt includes
 #include <QtPlugin>
@@ -52,7 +52,7 @@ qSlicerBetaProbeModulePrivate
 qSlicerBetaProbeModule
 ::qSlicerBetaProbeModule(QObject* _parent)
   : Superclass(_parent)
-  , d_ptr(new qSlicerBetaProbeModulePrivate)
+    , d_ptr(new qSlicerBetaProbeModulePrivate)
 {
 }
 

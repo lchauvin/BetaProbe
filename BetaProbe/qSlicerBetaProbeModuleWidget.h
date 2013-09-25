@@ -56,6 +56,8 @@ public slots:
   void onCountingNodeDisconnected();
   void onCountsReceived();
   void StartConnections();
+  void onMapButtonClicked();
+  void onVolumeToMapSelected(vtkMRMLNode* selectedNode);
 
 protected:
   QScopedPointer<qSlicerBetaProbeModuleWidgetPrivate> d_ptr;

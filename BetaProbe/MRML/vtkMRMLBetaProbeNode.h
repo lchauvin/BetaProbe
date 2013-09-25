@@ -96,6 +96,9 @@ public:
 		      double betaGamma,
 		      double gamma);
 
+  std::vector<trackingData> GetTrackerPositions();
+  std::vector<countingData> GetBetaProbeValues();
+
 protected:
   vtkMRMLBetaProbeNode();
   ~vtkMRMLBetaProbeNode();

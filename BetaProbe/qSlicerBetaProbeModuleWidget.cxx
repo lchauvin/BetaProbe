@@ -13,7 +13,7 @@
   See the License for the specific language governing permissions and
   limitations under the License.
 
-==============================================================================*/
+  ==============================================================================*/
 
 // STL
 #include <sstream>
@@ -29,8 +29,17 @@
 #include "qSlicerBetaProbeModuleWidget.h"
 #include "ui_qSlicerBetaProbeModuleWidget.h"
 
+// VTK includes
+#include "vtkImageData.h"
+#include "vtkLookupTable.h"
+#include "vtkMatrix4x4.h"
+
+// MRML includes
 #include "vtkMRMLBetaProbeNode.h"
+#include "vtkMRMLColorTableNode.h"
 #include "vtkMRMLIGTLConnectorNode.h"
+#include "vtkMRMLLabelMapVolumeDisplayNode.h"
+#include "vtkMRMLScalarVolumeNode.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -48,6 +57,8 @@ public:
   qSlicerBetaProbeModuleWidget::HostInformation BetaProbe;
   bool betaProbeStatus;
   bool trackingStatus;
+  vtkMRMLScalarVolumeNode* VolumeToMap;
+  vtkMRMLColorTableNode* BetaProbeColorNode;
 };
 
 //-----------------------------------------------------------------------------
@@ -69,6 +80,9 @@ qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
 
   this->BetaProbe.IPAddress.assign("192.168.0.207");
   this->BetaProbe.Port = 3000;
+
+  this->VolumeToMap = NULL;
+  this->BetaProbeColorNode = NULL;
 }
 
 //-----------------------------------------------------------------------------
@@ -78,6 +92,11 @@ qSlicerBetaProbeModuleWidgetPrivate::~qSlicerBetaProbeModuleWidgetPrivate()
     {
     this->udpTimeout->deleteLater();
     }
+
+  if (this->BetaProbeColorNode)
+    {
+    this->BetaProbeColorNode->Delete();
+    }
 }
 
 //-----------------------------------------------------------------------------
@@ -86,7 +105,7 @@ qSlicerBetaProbeModuleWidgetPrivate::~qSlicerBetaProbeModuleWidgetPrivate()
 //-----------------------------------------------------------------------------
 qSlicerBetaProbeModuleWidget::qSlicerBetaProbeModuleWidget(QWidget* _parent)
   : Superclass( _parent )
-  , d_ptr( new qSlicerBetaProbeModuleWidgetPrivate )
+    , d_ptr( new qSlicerBetaProbeModuleWidgetPrivate )
 {
 }
 
@@ -103,15 +122,20 @@ void qSlicerBetaProbeModuleWidget::setup()
   this->Superclass::setup();
 
   connect(d->NodeSelector, SIGNAL(nodeAddedByUser(vtkMRMLNode*)),
-	  this, SLOT(onNodeAdded(vtkMRMLNode*)));
+          this, SLOT(onNodeAdded(vtkMRMLNode*)));
 
   connect(d->ReconnectButton, SIGNAL(clicked()),
-	  this, SLOT(StartConnections()));
-  
-  connect(d->udpTimeout, SIGNAL(timeout()),
-	  this, SLOT(onCountingNodeDisconnected()));
+          this, SLOT(StartConnections()));
 
-  
+  connect(d->udpTimeout, SIGNAL(timeout()),
+          this, SLOT(onCountingNodeDisconnected()));
+
+  connect(d->MapButton, SIGNAL(clicked()),
+          this, SLOT(onMapButtonClicked()));
+
+  connect(d->VolumeToMapSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
+          this, SLOT(onVolumeToMapSelected(vtkMRMLNode*)));
+
   // Put label status to OFF
   this->setBetaProbeStatus(false);
   this->setTrackingStatus(false);
@@ -160,14 +184,14 @@ void qSlicerBetaProbeModuleWidget::StartConnections()
     {
     this->onCountingNodeConnected();
     connect(d->countingNode, SIGNAL(readyRead()),
-	    this, SLOT(onCountsReceived()));
+            this, SLOT(onCountsReceived()));
     }
-    
+
   // Create new tracking node if not existing
   if (!d->trackingNode)
     {
-      d->trackingNode =
-	vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
+    d->trackingNode =
+      vtkMRMLIGTLConnectorNode::SafeDownCast(this->mrmlScene()->CreateNodeByClass("vtkMRMLIGTLConnectorNode"));
     if (d->trackingNode)
       {
       d->trackingNode->SetName("BetaProbeTrackingDevice");
@@ -182,13 +206,13 @@ void qSlicerBetaProbeModuleWidget::StartConnections()
     {
     // Connect events
     qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::ReceiveEvent,
-		this, SLOT(onTrackingNodeReceivedData()));    
+                this, SLOT(onTrackingNodeReceivedData()));
     qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::ConnectedEvent,
-		this, SLOT(onTrackingNodeConnected()));
+                this, SLOT(onTrackingNodeConnected()));
     qvtkConnect(d->trackingNode, vtkMRMLIGTLConnectorNode::DisconnectedEvent,
-		this, SLOT(onTrackingNodeDisconnected()));
+                this, SLOT(onTrackingNodeDisconnected()));
     }
-    
+
 }
 
 //-----------------------------------------------------------------------------
@@ -200,15 +224,15 @@ void qSlicerBetaProbeModuleWidget::setBetaProbeStatus(bool status)
     {
     return;
     }
-  
-  QString labelText = QString(status ? 
-				   "ON" :
-				   "OFF"); 
+
+  QString labelText = QString(status ?
+                              "ON" :
+                              "OFF");
   QPalette bgColor = d->BetaProbeStatusLabel->palette();
   bgColor.setColor(d->BetaProbeStatusLabel->foregroundRole(),
-		    status ? 
-		    QColor::fromRgb(0,155,0,255) :
-		    QColor::fromRgb(155,0,0,255));
+                   status ?
+                   QColor::fromRgb(0,155,0,255) :
+                   QColor::fromRgb(155,0,0,255));
 
   d->BetaProbeStatusLabel->setPalette(bgColor);
   d->BetaProbeStatusLabel->setText(labelText);
@@ -225,15 +249,15 @@ void qSlicerBetaProbeModuleWidget::setTrackingStatus(bool status)
     {
     return;
     }
-  
-  QString labelText = QString(status ? 
-			      "ON" :
-			      "OFF"); 
+
+  QString labelText = QString(status ?
+                              "ON" :
+                              "OFF");
   QPalette bgColor = d->TrackingStatusLabel->palette();
   bgColor.setColor(d->TrackingStatusLabel->foregroundRole(),
-		    status ? 
-		    QColor::fromRgb(0,155,0,255) :
-		    QColor::fromRgb(155,0,0,255));
+                   status ?
+                   QColor::fromRgb(0,155,0,255) :
+                   QColor::fromRgb(155,0,0,255));
 
   d->TrackingStatusLabel->setPalette(bgColor);
   d->TrackingStatusLabel->setText(labelText);
@@ -244,8 +268,6 @@ void qSlicerBetaProbeModuleWidget::setTrackingStatus(bool status)
 //-----------------------------------------------------------------------------
 void qSlicerBetaProbeModuleWidget::onTrackingNodeConnected()
 {
-  Q_D(qSlicerBetaProbeModuleWidget);
-
   this->setTrackingStatus(true);
 }
 
@@ -301,8 +323,6 @@ void qSlicerBetaProbeModuleWidget::onTrackingNodeReceivedData()
 //-----------------------------------------------------------------------------
 void qSlicerBetaProbeModuleWidget::onCountingNodeConnected()
 {
-  Q_D(qSlicerBetaProbeModuleWidget);
-
   this->setBetaProbeStatus(true);
 }
 
@@ -326,7 +346,7 @@ void qSlicerBetaProbeModuleWidget::onCountsReceived()
     {
     return;
     }
-  
+
   if (!d->betaProbeStatus)
     {
     // Connection is back
@@ -343,7 +363,7 @@ void qSlicerBetaProbeModuleWidget::onCountsReceived()
     QByteArray datagram;
     datagram.resize(d->countingNode->pendingDatagramSize());
     d->countingNode->readDatagram(datagram.data(), datagram.size());
-    
+
     // Write datagrams
     QString dataReceived = QString(datagram);
     QString date = dataReceived.section(',',0,0);
@@ -353,7 +373,109 @@ void qSlicerBetaProbeModuleWidget::onCountsReceived()
     double g = dataReceived.section(',',4,4).toDouble();
 
     d->betaProbeNode->WriteCountData(date.toStdString(),
-				     time.toStdString(),
-				     s, c, g);
+                                     time.toStdString(),
+                                     s, c, g);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onVolumeToMapSelected(vtkMRMLNode* selectedNode)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!selectedNode)
+    {
+    return;
+    }
+
+  d->VolumeToMap = vtkMRMLScalarVolumeNode::SafeDownCast(selectedNode);
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onMapButtonClicked()
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->betaProbeNode || !d->VolumeToMap || !this->mrmlScene())
+    {
+    return;
+    }
+
+  // Get position and counting values
+  std::vector<vtkMRMLBetaProbeNode::trackingData> positionData;
+  std::vector<vtkMRMLBetaProbeNode::countingData> activityData;
+  positionData = d->betaProbeNode->GetTrackerPositions();
+  activityData = d->betaProbeNode->GetBetaProbeValues();
+
+  if (positionData.size() == activityData.size())
+    {
+    std::stringstream mapName;
+    mapName << d->VolumeToMap->GetName() << "-BetaProbeMapping";
+
+    // Create new volume with same information as volume to map
+    vtkSmartPointer<vtkMRMLLabelMapVolumeDisplayNode> labelMapDisplayNode
+      = vtkSmartPointer<vtkMRMLLabelMapVolumeDisplayNode>::New();
+    this->mrmlScene()->AddNode(labelMapDisplayNode);
+
+    vtkSmartPointer<vtkMRMLScalarVolumeNode> mapNode
+      = vtkSmartPointer<vtkMRMLScalarVolumeNode>::New();
+    mapNode->Copy(d->VolumeToMap);
+    mapNode->LabelMapOn();
+    mapNode->SetAndObserveDisplayNodeID(labelMapDisplayNode->GetID());
+    mapNode->SetName(mapName.str().c_str());
+
+    vtkSmartPointer<vtkImageData> mapData
+      = vtkSmartPointer<vtkImageData>::New();
+    mapData->SetDimensions(d->VolumeToMap->GetImageData()->GetDimensions());
+    mapData->SetNumberOfScalarComponents(1);
+    mapData->SetScalarTypeToDouble();
+    mapData->AllocateScalars();
+
+    // Get RASToIJK matrix to convert tracking coordinates from RAS to IJK
+    vtkSmartPointer<vtkMatrix4x4> RASToIJKMatrix
+      = vtkSmartPointer<vtkMatrix4x4>::New();
+    mapNode->GetRASToIJKMatrix(RASToIJKMatrix);
+
+    // Map values
+    for (unsigned int i = 0; i < positionData.size(); ++i)
+      {
+      double curPoint[4] = { positionData[i].X, positionData[i].Y, positionData[i].Z, 1.0 };
+      double* registeredPoint;
+      registeredPoint = RASToIJKMatrix->MultiplyDoublePoint(curPoint);
+      mapData->SetScalarComponentFromDouble(registeredPoint[0], registeredPoint[1], registeredPoint[2], 0,
+                                            activityData[i].Gamma);
+      }
+    mapData->Modified();
+    mapNode->SetAndObserveImageData(mapData);
+
+    // Create new lookup table if not already existing
+    // value 0: opacity 0
+    // From green to red (Hue: 0.33 -> 1.0)
+    if (!d->BetaProbeColorNode)
+      {
+      d->BetaProbeColorNode = vtkMRMLColorTableNode::New();
+      d->BetaProbeColorNode->SetName("BetaProbeColorNode");
+      d->BetaProbeColorNode->SetTypeToUser();
+      d->BetaProbeColorNode->SetNumberOfColors(256);
+
+      vtkLookupTable* betaProbeLUT = d->BetaProbeColorNode->GetLookupTable();
+      betaProbeLUT->SetHueRange(0.33, 1.0);
+      betaProbeLUT->SetSaturationRange(1.0, 1.0);
+      betaProbeLUT->SetValueRange(1.0, 1.0);
+      betaProbeLUT->SetAlphaRange(1.0, 1.0);
+      betaProbeLUT->Build();
+      betaProbeLUT->SetTableValue(0, 0.0, 0.0, 0.0, 0.0);
+      d->BetaProbeColorNode->HideFromEditorsOff();
+      this->mrmlScene()->AddNode(d->BetaProbeColorNode);
+      }
+
+    // Set range of data (range of scalar values)
+    // Update range even if not recreating color table
+    d->BetaProbeColorNode->GetLookupTable()->SetTableRange(mapData->GetScalarRange());
+    d->BetaProbeColorNode->Modified();
+
+    // Add node to scene
+    labelMapDisplayNode->SetAndObserveColorNodeID(d->BetaProbeColorNode->GetID());
+    this->mrmlScene()->AddNode(mapNode);
     }
 }
