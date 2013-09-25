@@ -70,14 +70,15 @@ QString qSlicerBetaProbeModule::helpText()const
 //-----------------------------------------------------------------------------
 QString qSlicerBetaProbeModule::acknowledgementText()const
 {
-  return "This work was was partially funded by NIH grant 3P41RR013218-12S1";
+  return QString("It is supported by grants 5P01CA067165, 5R01CA124377, 5R01CA138586, 2R44DE019322, 7R01CA124377," 
+  "5R42CA137886, 8P41EB015898");
 }
 
 //-----------------------------------------------------------------------------
 QStringList qSlicerBetaProbeModule::contributors()const
 {
   QStringList moduleContributors;
-  moduleContributors << QString("Jean-Christophe Fillion-Robin (Kitware)");
+  moduleContributors << QString("Laurent Chauvin (BWH)");
   return moduleContributors;
 }
 
@@ -90,7 +91,7 @@ QIcon qSlicerBetaProbeModule::icon()const
 //-----------------------------------------------------------------------------
 QStringList qSlicerBetaProbeModule::categories() const
 {
-  return QStringList() << "Examples";
+  return QStringList() << "IGT";
 }
 
 //-----------------------------------------------------------------------------
