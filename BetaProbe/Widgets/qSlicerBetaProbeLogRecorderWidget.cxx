@@ -240,6 +240,7 @@ void qSlicerBetaProbeLogRecorderWidget
 	}
 
       d->recordingFile << dataReceived.str() << std::endl;
+      d->betaProbeMRMLNode->RecordMappingData();
       }
     }
 }

@@ -58,6 +58,13 @@ public slots:
   void StartConnections();
   void onMapButtonClicked();
   void onVolumeToMapSelected(vtkMRMLNode* selectedNode);
+  void onColorWindowRangeChanged(double min, double max);
+
+  void SetBrainLabIPAddress(const char* brainLabIP);
+  void SetBrainLabPort(int port);
+  void SetBetaProbeIPAddress(const char* betaProbeIP);
+  void SetBetaProbePort(int port);
+  void SetPointSize(int voxelSize);
 
 protected:
   QScopedPointer<qSlicerBetaProbeModuleWidgetPrivate> d_ptr;

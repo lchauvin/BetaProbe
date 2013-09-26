@@ -188,7 +188,7 @@
 }
 
 QSlider::groove:horizontal {
-	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 rgba(0, 0, 255, 255), stop:0.2 rgba(0, 255, 255, 255), stop:0.4 rgba(0, 255, 0, 255), stop:0.6 rgba(255, 255, 0, 255), stop:1 rgba(255, 0, 0, 255));
+	background-color: qlineargradient(spread:pad, x1:0, y1:0, x2:1, y2:0, stop:0 hsv(250,255,255), stop:0.1 hsv(225,255,255), stop:0.2 hsv(200,255,255), stop:0.3 hsv(175,255,255), stop:0.4 hsv(150,255,255), stop:0.5 hsv(125,255,255), stop:0.6 hsv(100,255,255), stop:0.7 hsv(75,255,255), stop:0.8 hsv(50,255,255), stop:0.9 hsv(25,255,255), stop:1.0 hsv(0,255,255));
 }
 
  QSlider::handle:horizontal {
@@ -200,14 +200,17 @@ QSlider::groove:horizontal {
  }</string>
         </property>
         <property name="maximum">
-         <double>178.000000000000000</double>
+         <double>0.670000000000000</double>
         </property>
         <property name="maximumValue">
-         <double>178.000000000000000</double>
+         <double>0.670000000000000</double>
         </property>
         <property name="maximumPosition">
-         <double>178.000000000000000</double>
+         <double>0.670000000000000</double>
         </property>
+	<property name="singleStep">
+	  <double>0.01</double>
+	</property>
         <property name="orientation">
          <enum>Qt::Horizontal</enum>
         </property>

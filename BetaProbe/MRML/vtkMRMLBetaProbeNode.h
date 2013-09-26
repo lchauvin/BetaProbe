@@ -99,6 +99,8 @@ public:
   std::vector<trackingData> GetTrackerPositions();
   std::vector<countingData> GetBetaProbeValues();
 
+  void RecordMappingData();
+
 protected:
   vtkMRMLBetaProbeNode();
   ~vtkMRMLBetaProbeNode();

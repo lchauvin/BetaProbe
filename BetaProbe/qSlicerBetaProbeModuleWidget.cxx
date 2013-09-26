@@ -59,6 +59,7 @@ public:
   bool trackingStatus;
   vtkMRMLScalarVolumeNode* VolumeToMap;
   vtkMRMLColorTableNode* BetaProbeColorNode;
+  int PointSize;
 };
 
 //-----------------------------------------------------------------------------
@@ -83,6 +84,9 @@ qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
 
   this->VolumeToMap = NULL;
   this->BetaProbeColorNode = NULL;
+
+  // Number of voxels to display around real voxel position
+  this->PointSize = 1;
 }
 
 //-----------------------------------------------------------------------------
@@ -135,6 +139,9 @@ void qSlicerBetaProbeModuleWidget::setup()
 
   connect(d->VolumeToMapSelector, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
           this, SLOT(onVolumeToMapSelected(vtkMRMLNode*)));
+
+  connect(d->ColorWindowWidget, SIGNAL(valuesChanged(double, double)),
+	  this, SLOT(onColorWindowRangeChanged(double, double)));
 
   // Put label status to OFF
   this->setBetaProbeStatus(false);
@@ -437,20 +444,33 @@ void qSlicerBetaProbeModuleWidget::onMapButtonClicked()
     mapNode->GetRASToIJKMatrix(RASToIJKMatrix);
 
     // Map values
-    for (unsigned int i = 0; i < positionData.size(); ++i)
+    std::cerr << "Number of points: " << positionData.size() << std::endl;
+
+    for (unsigned int pt = 0; pt < positionData.size(); ++pt)
       {
-      double curPoint[4] = { positionData[i].X, positionData[i].Y, positionData[i].Z, 1.0 };
+      double curPoint[4] = { positionData[pt].X, positionData[pt].Y, positionData[pt].Z, 1.0 };
       double* registeredPoint;
       registeredPoint = RASToIJKMatrix->MultiplyDoublePoint(curPoint);
-      mapData->SetScalarComponentFromDouble(registeredPoint[0], registeredPoint[1], registeredPoint[2], 0,
-                                            activityData[i].Gamma);
+
+      // Also set same activity value to voxels around to make it more visible
+      double activityValue = activityData[pt].Gamma;
+      for (int k = registeredPoint[2]-d->PointSize; k < registeredPoint[2]+d->PointSize; ++k)
+	{
+	for (int j = registeredPoint[1]-d->PointSize; j < registeredPoint[1]+d->PointSize; ++j)
+	  {
+	  for (int i = registeredPoint[0]-d->PointSize; i < registeredPoint[0]+d->PointSize; ++i)
+	    {
+	    mapData->SetScalarComponentFromDouble(i,j,k,0,activityValue);
+	    }
+	  }
+	}
       }
     mapData->Modified();
     mapNode->SetAndObserveImageData(mapData);
 
     // Create new lookup table if not already existing
     // value 0: opacity 0
-    // From green to red (Hue: 0.33 -> 1.0)
+    // From blue to red (Hue: 0.67 -> 0.0)
     if (!d->BetaProbeColorNode)
       {
       d->BetaProbeColorNode = vtkMRMLColorTableNode::New();
@@ -459,7 +479,8 @@ void qSlicerBetaProbeModuleWidget::onMapButtonClicked()
       d->BetaProbeColorNode->SetNumberOfColors(256);
 
       vtkLookupTable* betaProbeLUT = d->BetaProbeColorNode->GetLookupTable();
-      betaProbeLUT->SetHueRange(0.33, 1.0);
+      betaProbeLUT->SetRampToLinear();
+      betaProbeLUT->SetHueRange(0.67, 0.0);
       betaProbeLUT->SetSaturationRange(1.0, 1.0);
       betaProbeLUT->SetValueRange(1.0, 1.0);
       betaProbeLUT->SetAlphaRange(1.0, 1.0);
@@ -478,4 +499,78 @@ void qSlicerBetaProbeModuleWidget::onMapButtonClicked()
     labelMapDisplayNode->SetAndObserveColorNodeID(d->BetaProbeColorNode->GetID());
     this->mrmlScene()->AddNode(mapNode);
     }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onColorWindowRangeChanged(double min, double max)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->BetaProbeColorNode)
+    {
+    return;
+    }
+
+  vtkLookupTable* betaProbeLUT = d->BetaProbeColorNode->GetLookupTable();
+  if (betaProbeLUT)
+    {
+    // Value 0 should be reset after rebuilding lookup table
+    double colorMax = d->ColorWindowWidget->maximum();
+    std::cerr << "Range: " << colorMax-min << "-" << colorMax-max << std::endl;
+    betaProbeLUT->SetHueRange(colorMax-min,colorMax-max);
+    betaProbeLUT->ForceBuild();
+    betaProbeLUT->SetTableValue(0, 0.0, 0.0, 0.0, 0.0);
+    d->BetaProbeColorNode->Modified();
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::SetBrainLabIPAddress(const char* brainLabIP)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (brainLabIP)
+    {
+    d->BrainLab.IPAddress.assign(brainLabIP);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::SetBrainLabPort(int port)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  d->BrainLab.Port = port;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::SetBetaProbeIPAddress(const char* betaProbeIP)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (betaProbeIP)
+    {
+    d->BetaProbe.IPAddress.assign(betaProbeIP);
+    }
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::SetBetaProbePort(int port)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  d->BetaProbe.Port = port;
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::SetPointSize(int voxelSize)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (voxelSize < 0)
+    {
+    return;
+    }
+
+  d->PointSize = voxelSize;
 }

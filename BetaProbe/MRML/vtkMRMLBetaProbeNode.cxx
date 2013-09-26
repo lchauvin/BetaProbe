@@ -112,12 +112,6 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
         this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
         this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
         this->currentPosition.Z = std::floor(matrixReceived->GetElement(2,3)*100)/100;
-
-        this->trackerPosition.push_back(this->currentPosition);
-        this->countingValues.push_back(this->currentValues);
-
-        this->numberOfCountingDataReceived++;
-        this->numberOfTrackingDataReceived++;
         this->TrackingDeviceNode->InvokeEvent(vtkMRMLIGTLConnectorNode::ReceiveEvent);
         this->Modified();
         }
@@ -193,4 +187,13 @@ std::vector<vtkMRMLBetaProbeNode::trackingData> vtkMRMLBetaProbeNode::GetTracker
 std::vector<vtkMRMLBetaProbeNode::countingData> vtkMRMLBetaProbeNode::GetBetaProbeValues()
 {
   return this->countingValues;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLBetaProbeNode::RecordMappingData()
+{
+  this->trackerPosition.push_back(this->currentPosition);
+  this->countingValues.push_back(this->currentValues);
+  this->numberOfCountingDataReceived++;
+  this->numberOfTrackingDataReceived++;
 }
