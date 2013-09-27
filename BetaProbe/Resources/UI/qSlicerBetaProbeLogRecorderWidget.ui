@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>278</width>
-    <height>151</height>
+    <height>173</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -15,11 +15,15 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout">
    <item>
-    <widget class="QPushButton" name="SelectFileButton">
-     <property name="text">
-      <string>Select Output File</string>
-     </property>
-    </widget>
+    <layout class="QHBoxLayout" name="horizontalLayout_3">
+     <item>
+      <widget class="QPushButton" name="SelectFileButton">
+       <property name="text">
+        <string>Select Output File</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
    </item>
    <item>
     <widget class="QGroupBox" name="RecordGroupBox">
