@@ -176,7 +176,7 @@
         <item>
          <widget class="QPushButton" name="MapButton">
           <property name="text">
-           <string>Map Activity</string>
+           <string>Generate Activity Map</string>
           </property>
          </widget>
         </item>
