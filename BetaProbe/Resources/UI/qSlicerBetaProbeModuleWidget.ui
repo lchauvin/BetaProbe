@@ -123,6 +123,15 @@
         </item>
        </layout>
       </item>
+      <item>
+       <widget class="qMRMLNodeComboBox" name="TransformSelectorNode">
+        <property name="nodeTypes">
+         <stringlist>
+          <string>vtkMRMLLinearTransformNode</string>
+         </stringlist>
+        </property>
+       </widget>
+      </item>
      </layout>
     </widget>
    </item>
@@ -470,8 +479,8 @@ QSlider::groove:horizontal {
      <y>9</y>
     </hint>
     <hint type="destinationlabel">
-     <x>396</x>
-     <y>82</y>
+     <x>200</x>
+     <y>74</y>
     </hint>
    </hints>
   </connection>
@@ -486,8 +495,24 @@ QSlider::groove:horizontal {
      <y>4</y>
     </hint>
     <hint type="destinationlabel">
-     <x>64</x>
-     <y>330</y>
+     <x>83</x>
+     <y>265</y>
+    </hint>
+   </hints>
+  </connection>
+  <connection>
+   <sender>qSlicerBetaProbeModuleWidget</sender>
+   <signal>mrmlSceneChanged(vtkMRMLScene*)</signal>
+   <receiver>TransformSelectorNode</receiver>
+   <slot>setMRMLScene(vtkMRMLScene*)</slot>
+   <hints>
+    <hint type="sourcelabel">
+     <x>6</x>
+     <y>49</y>
+    </hint>
+    <hint type="destinationlabel">
+     <x>40</x>
+     <y>153</y>
     </hint>
    </hints>
   </connection>

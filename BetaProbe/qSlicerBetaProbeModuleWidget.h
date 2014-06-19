@@ -56,6 +56,7 @@ public slots:
   void onCountingNodeDisconnected();
   void onCountsReceived();
   void StartConnections();
+  void onTransformNodeChanged(vtkMRMLNode* newTransform);
   void onMapButtonClicked();
   void onVolumeToMapSelected(vtkMRMLNode* selectedNode);
   void onColorWindowRangeChanged(double min, double max);

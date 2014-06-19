@@ -40,6 +40,7 @@
 #include "vtkMRMLIGTLConnectorNode.h"
 #include "vtkMRMLLabelMapVolumeDisplayNode.h"
 #include "vtkMRMLScalarVolumeNode.h"
+#include "vtkMRMLLinearTransformNode.h"
 
 //-----------------------------------------------------------------------------
 /// \ingroup Slicer_QtModules_ExtensionTemplate
@@ -131,6 +132,9 @@ void qSlicerBetaProbeModuleWidget::setup()
   connect(d->ReconnectButton, SIGNAL(clicked()),
           this, SLOT(StartConnections()));
 
+  connect(d->TransformSelectorNode, SIGNAL(currentNodeChanged(vtkMRMLNode*)),
+	  this, SLOT(onTransformNodeChanged(vtkMRMLNode*)));
+
   connect(d->udpTimeout, SIGNAL(timeout()),
           this, SLOT(onCountingNodeDisconnected()));
 
@@ -220,6 +224,20 @@ void qSlicerBetaProbeModuleWidget::StartConnections()
                 this, SLOT(onTrackingNodeDisconnected()));
     }
 
+}
+
+//-----------------------------------------------------------------------------
+void qSlicerBetaProbeModuleWidget::onTransformNodeChanged(vtkMRMLNode* newTransform)
+{
+  Q_D(qSlicerBetaProbeModuleWidget);
+
+  if (!d->betaProbeNode)
+    {
+    return;
+    }
+  
+  vtkMRMLLinearTransformNode* transformNode = vtkMRMLLinearTransformNode::SafeDownCast(newTransform);
+  d->betaProbeNode->SetTransformNode(transformNode);
 }
 
 //-----------------------------------------------------------------------------
