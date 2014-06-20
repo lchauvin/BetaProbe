@@ -155,12 +155,10 @@ void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *track
   this->TrackingDeviceNode = trackingNode;
   vtkNew<vtkIntArray> connectorNodeEvents;
   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ReceiveEvent);
-  connectorNodeEvents->InsertNextValue(vtkMRMLLinearTransformNode::TransformModifiedEvent);
   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::ConnectedEvent);
   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::DisconnectedEvent);
   vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
                                   connectorNodeEvents.GetPointer());
-
 }
 
 //---------------------------------------------------------------------------
@@ -229,4 +227,9 @@ void vtkMRMLBetaProbeNode::SetTransformNode(vtkMRMLLinearTransformNode* newTrans
     }
 
   this->ToolTransform = newTransform;
+  vtkNew<vtkIntArray> connectorNodeEvents;
+  connectorNodeEvents->InsertNextValue(vtkMRMLLinearTransformNode::TransformModifiedEvent);
+  vtkObserveMRMLObjectEventsMacro(this->ToolTransform,
+                                  connectorNodeEvents.GetPointer());
+
 }

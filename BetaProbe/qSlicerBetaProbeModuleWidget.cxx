@@ -77,7 +77,8 @@ qSlicerBetaProbeModuleWidgetPrivate::qSlicerBetaProbeModuleWidgetPrivate()
   this->betaProbeStatus = false;
   this->trackingStatus = false;
 
-  this->BrainLab.IPAddress.assign("127.0.0.1");
+  //  this->BrainLab.IPAddress.assign("127.0.0.1");
+  this->BrainLab.IPAddress.assign("172.22.233.144");
   this->BrainLab.Port = 22222;
 
   this->BetaProbe.IPAddress.assign("192.168.0.207");
