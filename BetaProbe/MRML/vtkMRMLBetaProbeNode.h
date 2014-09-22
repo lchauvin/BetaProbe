@@ -30,6 +30,7 @@
 #include "vtkSlicerBetaProbeModuleMRMLExport.h"
 
 class vtkMRMLScene;
+class vtkMRMLLinearTransformNode;
 
 class  VTK_SLICER_BETAPROBE_MODULE_MRML_EXPORT vtkMRMLBetaProbeNode : public vtkMRMLNode
 {
@@ -101,6 +102,8 @@ public:
 
   void RecordMappingData();
 
+  void SetTransformNode(vtkMRMLLinearTransformNode* newTransform);
+
 protected:
   vtkMRMLBetaProbeNode();
   ~vtkMRMLBetaProbeNode();
@@ -110,6 +113,8 @@ protected:
 
   vtkMRMLIGTLConnectorNode* TrackingDeviceNode;
   vtkMRMLIGTLConnectorNode* CountingDeviceNode;
+
+  vtkMRMLLinearTransformNode* ToolTransform;
 
   std::vector<trackingData> trackerPosition;
   trackingData currentPosition;

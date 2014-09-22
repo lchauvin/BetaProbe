@@ -41,6 +41,7 @@ vtkMRMLBetaProbeNode::vtkMRMLBetaProbeNode()
 {
   this->HideFromEditors = false;
   this->TrackingDeviceNode = NULL;
+  this->ToolTransform = NULL;
   this->numberOfTrackingDataReceived = 0;
 
   this->currentPosition.X = 0.0;
@@ -96,6 +97,7 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
   Superclass::ProcessMRMLEvents(caller, event, callData);
 
   // Tracking node
+  /*
   if (vtkMRMLIGTLConnectorNode::SafeDownCast(caller) == this->TrackingDeviceNode)
     {
     // Data received
@@ -108,6 +110,25 @@ void vtkMRMLBetaProbeNode::ProcessMRMLEvents ( vtkObject *caller,
         vtkSmartPointer<vtkMatrix4x4> matrixReceived =
           vtkSmartPointer<vtkMatrix4x4>::New();
         transformReceived->GetMatrixTransformToWorld(matrixReceived.GetPointer());
+
+        this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
+        this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
+        this->currentPosition.Z = std::floor(matrixReceived->GetElement(2,3)*100)/100;
+        this->TrackingDeviceNode->InvokeEvent(vtkMRMLIGTLConnectorNode::ReceiveEvent);
+        this->Modified();
+        }
+      }
+  */
+  if (vtkMRMLLinearTransformNode::SafeDownCast(caller) == this->ToolTransform)
+    {
+    // Data received
+    if (event == vtkMRMLLinearTransformNode::TransformModifiedEvent)
+      {
+      if (this->ToolTransform)
+        {
+        vtkSmartPointer<vtkMatrix4x4> matrixReceived =
+          vtkSmartPointer<vtkMatrix4x4>::New();
+        this->ToolTransform->GetMatrixTransformToWorld(matrixReceived.GetPointer());
 
         this->currentPosition.X = std::floor(matrixReceived->GetElement(0,3)*100)/100;
         this->currentPosition.Y = std::floor(matrixReceived->GetElement(1,3)*100)/100;
@@ -138,7 +159,6 @@ void vtkMRMLBetaProbeNode::SetTrackingDeviceNode(vtkMRMLIGTLConnectorNode *track
   connectorNodeEvents->InsertNextValue(vtkMRMLIGTLConnectorNode::DisconnectedEvent);
   vtkObserveMRMLObjectEventsMacro(this->TrackingDeviceNode,
                                   connectorNodeEvents.GetPointer());
-
 }
 
 //---------------------------------------------------------------------------
@@ -196,4 +216,20 @@ void vtkMRMLBetaProbeNode::RecordMappingData()
   this->countingValues.push_back(this->currentValues);
   this->numberOfCountingDataReceived++;
   this->numberOfTrackingDataReceived++;
+}
+
+//---------------------------------------------------------------------------
+void vtkMRMLBetaProbeNode::SetTransformNode(vtkMRMLLinearTransformNode* newTransform)
+{
+  if (this->ToolTransform == newTransform)
+    {
+    return;
+    }
+
+  this->ToolTransform = newTransform;
+  vtkNew<vtkIntArray> connectorNodeEvents;
+  connectorNodeEvents->InsertNextValue(vtkMRMLLinearTransformNode::TransformModifiedEvent);
+  vtkObserveMRMLObjectEventsMacro(this->ToolTransform,
+                                  connectorNodeEvents.GetPointer());
+
 }
