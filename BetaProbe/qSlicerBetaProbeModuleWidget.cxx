@@ -434,9 +434,7 @@ void qSlicerBetaProbeModuleWidget::onMapButtonClicked()
     vtkSmartPointer<vtkImageData> mapData
       = vtkSmartPointer<vtkImageData>::New();
     mapData->SetDimensions(d->VolumeToMap->GetImageData()->GetDimensions());
-    mapData->SetNumberOfScalarComponents(1);
-    mapData->SetScalarTypeToDouble();
-    mapData->AllocateScalars();
+    mapData->AllocateScalars(VTK_DOUBLE,1);
 
     // Get RASToIJK matrix to convert tracking coordinates from RAS to IJK
     vtkSmartPointer<vtkMatrix4x4> RASToIJKMatrix
